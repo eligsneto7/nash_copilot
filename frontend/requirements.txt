@@ -1,0 +1,8 @@
+# requirements.txt (NASH MVP)
+flask
+openai
+pinecone
+requests
+python-dotenv
+streamlit
+gunicorn
