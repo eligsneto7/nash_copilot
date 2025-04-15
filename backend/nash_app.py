@@ -32,6 +32,8 @@ def home():
     return "👨‍🚀 Nash Copilot API online! Use endpoints /login, /chat, /upload."
 
 # --- LOGIN SIMPLES ---
+NASH_PASSWORD = os.getenv("NASH_PASSWORD", "889988")  # Default para MVP
+
 @app.route("/login", methods=['POST'])
 def login():
     dados = request.json

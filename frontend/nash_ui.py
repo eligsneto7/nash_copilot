@@ -110,7 +110,7 @@ section.main > div {
 """, unsafe_allow_html=True)
 
 ############# --- STATUS DO BACKEND --- #############
-backend_url = "https://nash-copilot-production.up.railway.app"
+backend_url = "https://nashcopilot-production.up.railway.app"
 try:
     r = requests.get(f"{backend_url}/uploads")
     if r.status_code == 200:
@@ -124,7 +124,7 @@ st.markdown(f"<div id='backend-status'>Backend: {backend_stat}</div>", unsafe_al
 ########### --- VISOR HOLOGRÁFICO+AVATAR+ANALYTICS ------------
 
 # Avatar Nash user: preferencialmente use sua base64, url fixa ou código do avatar!
-avatar_url = "https://drive.google.com/uc?export=view&id=12bO1K94u8J-m20BAl_Zhe142X22Z6P8v"
+avatar_url = "https://imgur.com/a/vU2c4fW"
 visor_avatar_tag = f'<img class="nash-avatar-img" src="{avatar_url}" alt="Nash Avatar"/>'
 
 motivations = [
