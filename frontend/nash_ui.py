@@ -89,7 +89,7 @@ visor_text = f"""
     <div class="nash-ascii">
          .-"-.   <b>Q.I.</b> Desconfortavelmente alto<br>
         /|6 6|\\  Mode: Sarcastic, Loyal<br>
-       {/(_0_)\\} &nbsp;Upgrade: Holographic<br>
+   {{/(_0_)\\}} &nbsp;Upgrade: Holographic<br>
          _/ ^ \\_ <br>
         (/ /^\ \\)-'  <br>
          ""' '""<br>
