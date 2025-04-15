@@ -1,24 +1,22 @@
 # nash_utils.py
 
-import openai
-from pinecone import Pinecone
 import os
-import json
 import hashlib
-
-# --- Inicialização dos recursos externos ---
+from openai import OpenAI
 
 def init_openai(api_key):
-    openai.api_key = api_key
+    # Novo padrão OpenAI: normalmente só utilizado por convenção externa
+    os.environ["OPENAI_API_KEY"] = api_key
 
 def init_pinecone(api_key, index_name):
+    from pinecone import Pinecone
     pc = Pinecone(api_key=api_key)
     return pc.Index(index_name)
 
 # --- Embeddings e Consultas GPT ---
 def create_embedding(text, model="gpt-4-1106-preview"):
-    # Esta função chama o modelo GPT-4.1 para obter resposta OpenAI by Chat API
-    completion = openai.ChatCompletion.create(
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    completion = client.chat.completions.create(
         model=model,
         messages=[{
             "role": "system",
@@ -34,14 +32,12 @@ def create_embedding(text, model="gpt-4-1106-preview"):
     return completion.choices[0].message.content.strip()
 
 def get_text_embedding(text, model="text-embedding-ada-002"):
-    result = openai.Embedding.create(
-        input=[text], model=model
-    )
-    return result["data"][0]["embedding"]
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    response = client.embeddings.create(input=[text], model=model)
+    return response.data[0].embedding
 
 # --- Memória Vetorizada (Pinecone) ---
 def register_memory(pinecone_index, user_id, user_input, agent_response, tag="chat"):
-    # Salva o contexto de cada interação no Pinecone para busca futura
     text = f"[{tag}] Prompt: {user_input}\nResposta Nash: {agent_response}"
     vec = get_text_embedding(user_input)
     id_hash = hashlib.sha256((user_id + user_input).encode()).hexdigest()

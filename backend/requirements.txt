@@ -1,6 +1,6 @@
 # requirements.txt (NASH MVP)
 flask
-openai
+openai>=1.0.0
 pinecone
 requests
 python-dotenv
