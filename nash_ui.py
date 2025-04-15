@@ -47,7 +47,7 @@ section.main > div { background: rgba(12,17,32,0.97)!important; border-radius:17
 """, unsafe_allow_html=True)
 
 ############# --- STATUS DO BACKEND (RAILWAY OU LOCAL) --- #############
-backend_url = "http://localhost:8080"   # Troque pelo endpoint Railway se necessário
+backend_url = "https://nash-copilot-production.up.railway.app"   # DEFINITIVO DO RAILWAY
 try:
     r = requests.get(f"{backend_url}/uploads")
     if r.status_code == 200:
