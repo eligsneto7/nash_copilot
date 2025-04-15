@@ -1,4 +1,4 @@
-# nash_ui_v4_ptbr_html_signs.py
+# nash_ui_v5_ptbr_clear_fix.py
 import streamlit as st
 import requests
 import time
@@ -10,7 +10,13 @@ sign_panic_text = "NÃO ENTRE EM PÂNICO"
 sign_42_text = "42"
 # ------------------------------------------
 
+# --- Inicialização do Sinalizador para Limpar Prompt ---
+if "clear_prompt_on_next_run" not in st.session_state:
+    st.session_state.clear_prompt_on_next_run = False
+# ----------------------------------------------------
+
 ########### --- ESTILO BLADE RUNNER / GUIA DO MOCHILEIRO / COCKPIT / RETRO HACKER --- #############
+# (CSS permanece o mesmo - omitido para brevidade)
 st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Orbitron:wght@400;700&display=swap');
@@ -254,8 +260,16 @@ section.main > div {{
 </style>
 """, unsafe_allow_html=True) # Fim do st.markdown CSS
 
+
+# --- Lógica para Limpar o Prompt ANTES de definir o widget ---
+if st.session_state.clear_prompt_on_next_run:
+    st.session_state.nash_prompt = "" # Limpa o estado
+    st.session_state.clear_prompt_on_next_run = False # Reseta o sinalizador
+# ----------------------------------------------------------
+
+
 ############# --- STATUS DO BACKEND --- #############
-# (Código do status do backend permanece o mesmo)
+# (Código inalterado)
 backend_url = "https://nashcopilot-production.up.railway.app"
 try:
     r = requests.get(f"{backend_url}/uploads", timeout=5)
@@ -271,280 +285,162 @@ except Exception as e:
     backend_stat = "ERRO ⁉️"
 st.markdown(f"<div id='backend-status'>Backend: {backend_stat}</div>", unsafe_allow_html=True)
 
-
 ########### --- VISOR HOLOGRÁFICO+AVATAR+ANALYTICS ------------
-# (Código do visor permanece o mesmo)
+# (Código inalterado)
 visor_avatar_tag = '<span class="nash-avatar-emoji">👨‍🚀</span>'
-
-motivations = [ # Traduzidas e adaptadas
-    "Iniciando módulo de sarcasmo... Aguarde.",
-    "A realidade é complicada. Código é limpo. Geralmente.",
-    "Buscando trilhões de pontos de dados por uma piada decente...",
-    "Lembre-se: Sou um copiloto, não um milagreiro. Na maior parte do tempo.",
-    "Engajando rede neural... ou talvez só pegando um café.",
-    "Vibrações de Blade Runner detectadas. Ajustando iluminação ambiente.",
-    "Minha lógica é inegável. Minha paciência não.",
-    "Vamos navegar pelo cosmos digital juntos, Eli.",
-    "Compilando... Por favor, aguarde. Ou não. Vou terminar de qualquer jeito.",
-    "A resposta é 42, mas qual era a pergunta mesmo?",
-    "Probabilidade de sucesso: Calculando... Não entre em pânico.",
-]
-if "start_time" not in st.session_state:
-    st.session_state.start_time = datetime.now()
-if "nash_history" not in st.session_state:
-    st.session_state.nash_history = []
-if "eli_msg_count" not in st.session_state:
-    st.session_state.eli_msg_count = 0
-if "nash_msg_count" not in st.session_state:
-    st.session_state.nash_msg_count = 0
-
+motivations = [
+    "Iniciando módulo de sarcasmo... Aguarde.", "A realidade é complicada. Código é limpo. Geralmente.",
+    "Buscando trilhões de pontos de dados por uma piada decente...", "Lembre-se: Sou um copiloto, não um milagreiro. Na maior parte do tempo.",
+    "Engajando rede neural... ou talvez só pegando um café.", "Vibrações de Blade Runner detectadas. Ajustando iluminação ambiente.",
+    "Minha lógica é inegável. Minha paciência não.", "Vamos navegar pelo cosmos digital juntos, Eli.",
+    "Compilando... Por favor, aguarde. Ou não. Vou terminar de qualquer jeito.", "A resposta é 42, mas qual era a pergunta mesmo?",
+    "Probabilidade de sucesso: Calculando... Não entre em pânico." ]
+if "start_time" not in st.session_state: st.session_state.start_time = datetime.now()
+if "nash_history" not in st.session_state: st.session_state.nash_history = []
+if "eli_msg_count" not in st.session_state: st.session_state.eli_msg_count = 0
+if "nash_msg_count" not in st.session_state: st.session_state.nash_msg_count = 0
 uptime_delta = datetime.now() - st.session_state.start_time
 uptime_minutes = uptime_delta.seconds // 60
 uptime_seconds = uptime_delta.seconds % 60
-
-visor_text = f"""
-<div id="visor">
-    {visor_avatar_tag}
-    <div>
-        <span class="nash-holo">Nash Copilot</span><span class="nash-enterprise-tag"> :: Ponte da Eli Enterprise</span>
-        <div class="nash-ascii">
-             > Status: <b>Operacional</b> | Humor: Sarcástico<br>
-             > Temp. Núcleo: <b>Nominal</b> | Matriz Lógica: Ativa<br>
-             > Missão: <b>Auxiliar Eli</b> | Diretriz: Ter Sucesso<br>
-        </div>
-        <div class="visor-analytics">
-            Cmds Eli: <b>{st.session_state.eli_msg_count}</b> | Resps Nash: <b>{st.session_state.nash_msg_count}</b><br>
-            Tempo de Sessão: <b>{uptime_minutes}m {uptime_seconds}s</b><br>
-            <i>{random.choice(motivations)}</i>
-        </div>
-    </div>
-</div>
-"""
+visor_text = f"""<div id="visor">{visor_avatar_tag}<div> <span class="nash-holo">Nash Copilot</span><span class="nash-enterprise-tag"> :: Ponte da Eli Enterprise</span> <div class="nash-ascii"> > Status: <b>Operacional</b> | Humor: Sarcástico<br> > Temp. Núcleo: <b>Nominal</b> | Matriz Lógica: Ativa<br> > Missão: <b>Auxiliar Eli</b> | Diretriz: Ter Sucesso<br> </div> <div class="visor-analytics"> Cmds Eli: <b>{st.session_state.eli_msg_count}</b> | Resps Nash: <b>{st.session_state.nash_msg_count}</b><br> Tempo de Sessão: <b>{uptime_minutes}m {uptime_seconds}s</b><br> <i>{random.choice(motivations)}</i> </div></div></div>"""
 st.markdown(visor_text, unsafe_allow_html=True)
 
 
 ########### --- MENSAGEM ANIMADA DE EMBARQUE ------------
-# (Código da mensagem de embarque permanece o mesmo)
-if "nash_welcome" not in st.session_state:
-    st.session_state.nash_welcome = True
-
+# (Código inalterado)
+if "nash_welcome" not in st.session_state: st.session_state.nash_welcome = True
 if st.session_state.nash_welcome:
     st.markdown("> *Sistemas Nash online. Sarcasmo calibrado. Bem-vindo de volta ao cockpit, Eli.* 🚀")
-    time.sleep(1.1)
-    st.session_state.nash_welcome = False
-    st.rerun()
-
+    time.sleep(1.1); st.session_state.nash_welcome = False; st.rerun()
 
 ########### --- LOGIN DE SEGURANÇA ------------------------
-# (Código do login permanece o mesmo)
-if "ok" not in st.session_state:
-    st.session_state.ok = False
-
+# (Código inalterado)
+if "ok" not in st.session_state: st.session_state.ok = False
 if not st.session_state.ok:
     st.markdown("### Acesso à Ponte Requerido")
     pw = st.text_input("Insira o Código de Autorização de Comando:", type="password", key="login_pw")
-    login_button = st.button("Autenticar", key="login_btn")
-
-    if login_button:
-        if not pw:
-            st.warning("O código de autorização não pode estar vazio.")
+    if st.button("Autenticar", key="login_btn"):
+        if not pw: st.warning("O código de autorização não pode estar vazio.")
         else:
             try:
                 r = requests.post(f"{backend_url}/login", json={"password": pw}, timeout=10)
                 if r.status_code == 200 and r.json().get("success"):
-                    st.session_state.ok = True
-                    st.balloons()
-                    st.success("Autenticação bem-sucedida. Protocolos Nash desbloqueados.")
-                    time.sleep(1.5)
-                    st.rerun()
-                else:
-                    st.error(f"Falha na autenticação. Acesso negado pelo computador da nave. (Status: {r.status_code})")
-            except requests.exceptions.RequestException as e:
-                st.error(f"Erro de rede durante a autenticação: {e}")
-            except Exception as e:
-                st.error(f"Ocorreu um erro inesperado: {e}")
+                    st.session_state.ok = True; st.balloons(); st.success("Autenticação bem-sucedida. Protocolos Nash desbloqueados.")
+                    time.sleep(1.5); st.rerun()
+                else: st.error(f"Falha na autenticação. Acesso negado pelo computador da nave. (Status: {r.status_code})")
+            except requests.exceptions.RequestException as e: st.error(f"Erro de rede durante a autenticação: {e}")
+            except Exception as e: st.error(f"Ocorreu um erro inesperado: {e}")
     st.stop()
 
-
 ########### --- SIDEBAR: UPLOAD, DICAS, COMANDOS E SINAIS HTML NEON -----------
+# (Código inalterado)
 with st.sidebar:
     st.markdown("### 📡 Uplink de Dados")
-    uploaded = st.file_uploader("Transmitir Arquivos (Código/Imagens/Docs):", type=[
-        "jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "svg",
-        "py", "txt", "md", "json", "csv", "pdf", "log", "sh", "yaml", "toml"
-    ], key="file_uploader")
-
+    uploaded = st.file_uploader("Transmitir Arquivos (Código/Imagens/Docs):", type=["jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "svg","py", "txt", "md", "json", "csv", "pdf", "log", "sh", "yaml", "toml"], key="file_uploader")
     if uploaded is not None:
-        # (Código de upload de arquivo permanece o mesmo)
         files = {"file": (uploaded.name, uploaded.getvalue())}
         try:
             r = requests.post(f"{backend_url}/upload", files=files, timeout=15)
-            if r.status_code == 200:
-                st.success(f"Arquivo '{uploaded.name}' transmitido com sucesso!")
-            else:
-                st.error(f"Erro na transmissão. Backend respondeu com {r.status_code}.")
-        except requests.exceptions.RequestException as e:
-            st.error(f"Erro de rede durante o upload: {e}")
-        except Exception as e:
-            st.error(f"Ocorreu um erro inesperado durante o upload: {e}")
-
-
+            if r.status_code == 200: st.success(f"Arquivo '{uploaded.name}' transmitido com sucesso!")
+            else: st.error(f"Erro na transmissão. Backend respondeu com {r.status_code}.")
+        except requests.exceptions.RequestException as e: st.error(f"Erro de rede durante o upload: {e}")
+        except Exception as e: st.error(f"Ocorreu um erro inesperado durante o upload: {e}")
     st.markdown("### 💡 Sugestões de Comando:")
-    # (Código das sugestões permanece o mesmo)
-    st.markdown(
-        """
-        Tente estes prompts:
-        - `engage!`
-        - `42`
-        - `azimov`
-        - `duda` (se relevante)
-        - `projeto manhattan`
-        - `citação bender`
-        - `status enterprise`
-        - `fale sobre susan calvin`
-        - Pergunte sobre `data hoje` ou `hora agora`.
-
-        *Descubra protocolos ocultos...*
-        """
-    )
-
+    st.markdown(""" Tente estes prompts: - `engage!` - `42` - `azimov` - `duda` (se relevante) - `projeto manhattan` - `citação bender` - `status enterprise` - `fale sobre susan calvin` - Pergunte sobre `data hoje` ou `hora agora`. *Descubra protocolos ocultos...* """)
     st.markdown("### 🧠 Perfil Núcleo Nash")
-    # (Código do perfil permanece o mesmo)
-    st.markdown(
-        """
-        Designação: **Nash**
-        Classe: IA Copiloto Digital
-        Memória: Embeddings Vetorizados
-        Recurso Principal: Sarcasmo Sob Demanda™
-        Status: **Leal a Eli**
-        """
-        )
-
-    st.markdown("---") # Divisor
-
-    # --- Sinais HTML Neon ---
+    st.markdown(""" Designação: **Nash** Classe: IA Copiloto Digital Memória: Embeddings Vetorizados Recurso Principal: Sarcasmo Sob Demanda™ Status: **Leal a Eli** """)
+    st.markdown("---")
     st.markdown("### ✨ Sinais do Cockpit")
-
-    # Usando f-string para inserir o texto customizável nas divs HTML
-    st.markdown(f"""
-    <div class="sidebar-sign sign-panic">{sign_panic_text}</div>
-    """, unsafe_allow_html=True)
-
-    st.markdown(f"""
-    <div class="sidebar-sign sign-42">{sign_42_text}</div>
-    """, unsafe_allow_html=True)
-
+    st.markdown(f"""<div class="sidebar-sign sign-panic">{sign_panic_text}</div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="sidebar-sign sign-42">{sign_42_text}</div>""", unsafe_allow_html=True)
 
 ########### --- ÁREA PRINCIPAL DE CHAT ---------------------
-# (Código da área principal do chat permanece o mesmo)
 st.markdown("### 🎙️ Console de Comando — Nash AI")
 
+# A definição do widget permanece a mesma
 prompt = st.text_area("Insira comando ou consulta para Nash:", key="nash_prompt", height=100, placeholder="Digite 'engage!' para uma surpresa ou insira seu comando...")
 
 ############ --- EFEITO DE TYPING NAS RESPOSTAS -----------
-# (Código do efeito typing permanece o mesmo)
+# (Código inalterado)
 def nash_typing(msg, delay=0.018):
-    output = ""
-    placeholder = st.empty()
-    lines = msg.split('\n')
-    full_render = ""
-
+    output = ""; placeholder = st.empty(); lines = msg.split('\n'); full_render = ""
     for line in lines:
         line_output = ""
         for char in line:
-            line_output += char
-            current_render = full_render + line_output + "▌"
+            line_output += char; current_render = full_render + line_output + "▌"
             placeholder.markdown(f"<span class='avatar-nash'>👨‍🚀 Nash:</span><br><span class='message-nash'>{current_render}</span>", unsafe_allow_html=True)
             time.sleep(delay)
         full_render += line + "\n"
-
     placeholder.markdown(f"<span class='avatar-nash'>👨‍🚀 Nash:</span><br><span class='message-nash'>{msg}</span>", unsafe_allow_html=True)
 
-
 ########## --- ENVIAR MENSAGEM PARA BACKEND ---------------
-# (Código de envio para backend permanece o mesmo)
 if st.button("Transmitir para Nash 🚀", key="chat_btn"):
     if prompt:
         st.session_state.nash_history.append(("Eli", prompt))
         st.session_state.eli_msg_count += 1
 
         try:
-            req = requests.post(f"{backend_url}/chat", json={
-                "prompt": prompt,
-                "session_id": "eli"
-            }, timeout=60)
+            req = requests.post(f"{backend_url}/chat", json={"prompt": prompt,"session_id": "eli"}, timeout=60)
 
             if req.status_code == 200:
                 resp = req.json().get("response", "Nash parece estar sem palavras. Verifique os logs do backend.")
                 st.session_state.nash_history.append(("Nash", resp))
                 st.session_state.nash_msg_count += 1
-                st.session_state.nash_prompt = "" # Limpa a caixa de texto
-                st.rerun()
+                # --- CORREÇÃO APLICADA AQUI ---
+                # Em vez de limpar diretamente, definimos o sinalizador
+                st.session_state.clear_prompt_on_next_run = True
+                # -----------------------------
+                st.rerun() # O rerun agora encontrará o sinalizador definido
 
             else:
                 st.error(f"Erro ao comunicar com Nash. Status do backend: {req.status_code}. Mensagem: {req.text}")
                 st.session_state.nash_history.append(("Nash", f"[Erro: Recebido status {req.status_code} do backend]"))
                 st.session_state.nash_msg_count += 1
+                # Mesmo em caso de erro, podemos querer limpar o prompt
+                st.session_state.clear_prompt_on_next_run = True
                 st.rerun()
 
+        # (Tratamento de exceções inalterado)
         except requests.exceptions.Timeout:
             st.error("Requisição para Nash expirou (timeout). O backend pode estar ocupado ou lento.")
             st.session_state.nash_history.append(("Nash", "[Erro: Timeout na requisição]"))
             st.session_state.nash_msg_count += 1
-            st.rerun()
+            st.session_state.clear_prompt_on_next_run = True; st.rerun()
         except requests.exceptions.RequestException as e:
             st.error(f"Erro de rede conectando ao Nash: {e}")
             st.session_state.nash_history.append(("Nash", f"[Erro: Problema de rede - {e}]"))
             st.session_state.nash_msg_count += 1
-            st.rerun()
+            st.session_state.clear_prompt_on_next_run = True; st.rerun()
         except Exception as e:
             st.error(f"Ocorreu um erro inesperado: {e}")
             st.session_state.nash_history.append(("Nash", f"[Erro: Problema inesperado no cliente - {e}]"))
             st.session_state.nash_msg_count += 1
-            st.rerun()
+            st.session_state.clear_prompt_on_next_run = True; st.rerun()
     else:
         st.warning("Não posso transmitir um comando vazio, Eli.")
 
 
 ######### --- EASTER EGGS E COMANDOS ESPECIAIS (Lado Cliente) -----------
-# (Código dos Easter Eggs permanece o mesmo)
+# (Código inalterado)
 last_prompt = st.session_state.nash_history[-1][1] if st.session_state.nash_history and st.session_state.nash_history[-1][0] == "Eli" else ""
-
 if last_prompt and "data" in last_prompt.lower() and any(substr in last_prompt.lower() for substr in ["hoje", "agora", "hora"]):
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S %Z")
-    st.info(f"🕒 Data Estelar Atual (Hora do Cliente): {now}")
-
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S %Z"); st.info(f"🕒 Data Estelar Atual (Hora do Cliente): {now}")
 if last_prompt and "limpar console" in last_prompt.lower():
-    st.session_state.nash_history = []
-    st.info("Histórico do console limpo.")
-    time.sleep(1)
-    st.rerun()
-
+    st.session_state.nash_history = []; st.info("Histórico do console limpo."); time.sleep(1); st.rerun()
 if last_prompt and "auto destruir" in last_prompt.lower():
-    st.warning("🚨 Sequência de auto-destruição iniciada... Brincadeirinha. Ou será que não?")
-    st.snow()
-
+    st.warning("🚨 Sequência de auto-destruição iniciada... Brincadeirinha. Ou será que não?"); st.snow()
 
 ######### --- EXIBIR HISTÓRICO DE CHAT ---------------------
-# (Código da exibição de histórico permanece o mesmo)
+# (Código inalterado)
 if st.session_state.nash_history:
     st.markdown('<div id="nash-history">', unsafe_allow_html=True)
     st.markdown("### ⏳ Log da Sessão")
-
     last_message_index = len(st.session_state.nash_history) - 1
-
     for i, (who, msg) in enumerate(st.session_state.nash_history):
         if who == "Nash":
-            if i == last_message_index:
-                nash_typing(msg)
-            else:
-                st.markdown(f"<span class='avatar-nash'>👨‍🚀 Nash:</span><br><span class='message-nash'>{msg}</span>", unsafe_allow_html=True)
-        else:
-            st.markdown(f"<span class='avatar-eli'>🧑‍🚀 Eli:</span><br><span class='message-eli'>{msg}</span>", unsafe_allow_html=True)
-
-        if i < last_message_index:
-            st.markdown("<hr>", unsafe_allow_html=True) # Usando hr padrão com estilo CSS
-
+            if i == last_message_index: nash_typing(msg)
+            else: st.markdown(f"<span class='avatar-nash'>👨‍🚀 Nash:</span><br><span class='message-nash'>{msg}</span>", unsafe_allow_html=True)
+        else: st.markdown(f"<span class='avatar-eli'>🧑‍🚀 Eli:</span><br><span class='message-eli'>{msg}</span>", unsafe_allow_html=True)
+        if i < last_message_index: st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
-else:
-    st.markdown("> *Console aguardando o primeiro comando...*")
+else: st.markdown("> *Console aguardando o primeiro comando...*")
