@@ -1,275 +1,294 @@
-# nash_ui_v2.py
+# nash_ui_v4_ptbr_html_signs.py
 import streamlit as st
 import requests
 import time
 from datetime import datetime
 import random
 
-########### --- ESTILO BLADE RUNNER / INTERSTELLAR COCKPIT / RETRO HACKER --- #############
-st.markdown("""
+# --- Textos Customizáveis para os Sinais ---
+sign_panic_text = "NÃO ENTRE EM PÂNICO"
+sign_42_text = "42"
+# ------------------------------------------
+
+########### --- ESTILO BLADE RUNNER / GUIA DO MOCHILEIRO / COCKPIT / RETRO HACKER --- #############
+st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Orbitron:wght@400;700&display=swap');
 
-body {
-    /* Darker, moodier gradient base */
-    background: linear-gradient(145deg, #0d0d1a 70%, #1f1f3d 100%);
-    color: #c0d0ff !important; /* Slightly softer default text color */
+@keyframes blink-neon {{
+  0%, 100% {{ opacity: 1; text-shadow: 0 0 7px #ff07e6, 0 0 15px #ff07e6, 0 0 20px #ff07e6; }}
+  50% {{ opacity: 0.7; text-shadow: 0 0 5px #ff07e6a0, 0 0 10px #ff07e6a0; }}
+}}
+
+body {{
+    background: radial-gradient(ellipse at center, #1a1a2a 0%, #0d0d1a 70%), linear-gradient(145deg, #0d0d1a 70%, #1f1f3d 100%);
+    background-attachment: fixed;
+    color: #c0d0ff !important;
     font-family: 'Fira Mono', 'Consolas', monospace;
     min-height: 100vh !important;
-    overflow-x: hidden; /* Prevent horizontal scroll */
-}
+    overflow-x: hidden;
+}}
 
-/* Refined retro rain effect */
-body:before {
+body:before {{
     content: '';
     background-image: url('https://i.ibb.co/tbq0Qk4/retro-rain.gif');
-    opacity: .15; /* Slightly more subtle */
+    opacity: .12;
     position: fixed;
-    top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; /* Ensure it's behind everything */
+    top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1;
     pointer-events: none;
-    background-size: cover; /* Ensure gif covers */
-}
+    background-size: cover;
+}}
 
-/* Main content area - darker, subtle neon edge */
-section.main > div {
-    background: rgba(15, 15, 25, 0.96) !important; /* Darker, less transparent */
-    border-radius: 15px; /* Slightly less rounded */
-    border: 1px solid #0aebff40; /* Faint cyan border */
-    box-shadow: 0 0 15px #0aebff10; /* Subtle cyan glow */
-}
+section.main > div {{
+    background: rgba(15, 15, 25, 0.97) !important;
+    border-radius: 15px;
+    border: 1px solid #0aebff40;
+    box-shadow: 0 0 20px #0aebff15, inset 0 0 15px rgba(0,0,0,0.3);
+}}
 
-/* Visor - Blade Runner style */
-#visor {
+#visor {{
     background:
-        linear-gradient(135deg, #101225f5 80%, #ff07e6e0 140%), /* Deep base, sharp magenta edge */
+        linear-gradient(135deg, #101225f5 80%, #ff07e6e0 140%),
         rgba(5, 5, 15, 0.95);
     border-radius: 15px;
     margin-bottom: 20px; margin-top: -10px;
-    border: 2.5px solid #ff07e680; /* Magenta neon border */
-    box-shadow: 0 0 28px #e600c670, inset 0 0 12px #101225cc; /* Outer magenta glow, inner shadow */
+    border: 2.5px solid #ff07e680;
+    box-shadow: 0 0 28px #e600c670, inset 0 0 12px #101225cc;
     padding: 18px 26px 14px 30px;
     display: flex; align-items: center;
     gap: 25px;
-}
+}}
 
-/* Avatar replaced with emoji + styling */
-.nash-avatar-emoji {
-    font-size: 65px; /* Adjust size as needed */
-    filter: drop-shadow(0 0 12px #0affa0); /* Cyan glow */
+.nash-avatar-emoji {{
+    font-size: 65px;
+    filter: drop-shadow(0 0 12px #0affa0);
     margin-right: 15px;
-    line-height: 1; /* Ensure proper vertical alignment */
-}
+    line-height: 1;
+}}
 
-/* Title Text - More prominent */
-.nash-holo {
-  font-family: 'Orbitron', 'Fira Mono', monospace; /* More sci-fi title font */
+.nash-holo {{
+  font-family: 'Orbitron', 'Fira Mono', monospace;
   font-size: 2.1em;
-  color: #0affa0; /* Bright Cyan */
-  text-shadow: 0 0 15px #0affa0a0, 0 0 5px #ffffff60; /* Stronger cyan glow */
+  color: #0affa0;
+  text-shadow: 0 0 15px #0affa0a0, 0 0 5px #ffffff60;
   margin-bottom: 3px;
   user-select: none;
-}
-.nash-enterprise-tag {
+}}
+.nash-enterprise-tag {{
     font-size: 0.9em;
-    color: #ff07e6b0; /* Subdued magenta */
+    color: #ff07e6b0;
     font-family: 'Fira Mono', monospace;
-}
+}}
 
-/* ASCII Art - Adjusted colors */
-.nash-ascii {
+.nash-ascii {{
   font-family: 'Fira Mono', monospace;
-  color: #0affa0c0; /* Softer cyan */
+  color: #0affa0c0;
   letter-spacing: 0.5px;
   line-height: 110%;
   font-size: 0.95em;
-  text-shadow: 0 0 8px #0affa050; /* Subtle cyan glow */
+  text-shadow: 0 0 8px #0affa050;
   margin-top: -5px;
   margin-bottom: 5px;
-}
-.nash-ascii b {
-    color: #ff07e6; /* Magenta for emphasis */
+}}
+.nash-ascii b {{
+    color: #ff07e6;
     font-weight: bold;
-}
+}}
 
-/* Buttons - Cockpit panel style */
-.stButton>button {
+.stButton>button {{
     color: #e0e8ff;
-    background: #181c30; /* Darker background */
+    background: #181c30;
     border-radius: 8px;
-    border: 2px solid #0affa090; /* Cyan border */
+    border: 2px solid #0affa090;
     font-weight: bold;
     transition: all 0.3s ease;
     box-shadow: 0 0 8px #0affa030;
-}
-.stButton>button:hover {
+}}
+.stButton>button:hover {{
     background: #202540;
     border-color: #0affa0;
     box-shadow: 0 0 15px #0affa070;
     color: #ffffff;
-}
-.stButton>button:active {
+}}
+.stButton>button:active {{
     background: #101225;
-}
+}}
 
-/* Inputs - Hacker terminal style */
-.stTextInput input, .stTextArea textarea {
+.stTextInput input, .stTextArea textarea {{
     background: #101225 !important;
     color: #c0d0ff !important;
     border: 1px solid #0affa050 !important;
     border-radius: 5px !important;
     box-shadow: inset 0 0 8px #00000050;
-}
-.stTextInput input:focus, .stTextArea textarea:focus {
+}}
+.stTextInput input:focus, .stTextArea textarea:focus {{
     border-color: #0affa0 !important;
     box-shadow: 0 0 10px #0affa050;
-}
+}}
 
-/* Placeholder text */
-::-webkit-input-placeholder { color: #0affa0; opacity: 0.6; } /* Cyan placeholder */
-::-moz-placeholder { color: #0affa0; opacity: 0.6; }
-:-ms-input-placeholder { color: #0affa0; opacity: 0.6; }
-:-moz-placeholder { color: #0affa0; opacity: 0.6; }
+::-webkit-input-placeholder {{ color: #0affa0; opacity: 0.6; }}
+::-moz-placeholder {{ color: #0affa0; opacity: 0.6; }}
+:-ms-input-placeholder {{ color: #0affa0; opacity: 0.6; }}
+:-moz-placeholder {{ color: #0affa0; opacity: 0.6; }}
 
-/* File Uploader */
-.stFileUploader {
+.stFileUploader {{
     background: #101225 !important;
     border: 1px dashed #0affa070 !important;
     border-radius: 8px;
     padding: 15px;
-}
-.stFileUploader label {
-    color: #0affa0 !important; /* Cyan label */
-}
+}}
+.stFileUploader label {{
+    color: #0affa0 !important;
+}}
 
-/* Chat History - Data log style */
-#nash-history {
-    background: #0f0f1acc; /* Very dark, slightly transparent */
+#nash-history {{
+    background: #0f0f1acc;
     border-radius: 10px;
     padding: 18px 16px 8px 15px;
     margin-top: 20px;
-    border: 1px solid #0affa050; /* Subtle cyan border */
-    /* Adjusted ASCII/code overlay */
+    border: 1px solid #0affa050;
     background-image: repeating-linear-gradient(90deg, rgba(0, 200, 255, 0.01) 0px, rgba(0, 200, 255, 0.03) 1px, transparent 1px, transparent 6px);
     box-shadow: inset 0 0 10px #00000070, 0 0 10px #0aebff20;
-}
-#nash-history h3 { /* Style the subheader inside */
-    color: #ff07e6; /* Magenta header */
+}}
+#nash-history h3 {{
+    color: #ff07e6;
     text-shadow: 0 0 8px #ff07e680;
     border-bottom: 1px solid #ff07e650;
     padding-bottom: 5px;
     margin-bottom: 15px;
-}
+}}
 
-/* Avatar labels in chat */
-.avatar-nash {
-    color:#0affa0; /* Cyan */
+.avatar-nash {{
+    color:#0affa0;
     font-weight:bold;
     filter: drop-shadow(0 0 5px #0affa0);
-}
-.avatar-eli {
-    color:#ff07e6; /* Magenta */
+}}
+.avatar-eli {{
+    color:#ff07e6;
     font-weight:bold;
     filter: drop-shadow(0 0 5px #ff07e6);
-}
-/* Message text styling */
-.message-nash { color: #c0f0ff; } /* Lighter blue/cyan for Nash's text */
-.message-eli { color: #ffe0f8; } /* Lighter pink/magenta for Eli's text */
+}}
+.message-nash {{ color: #c0f0ff; }}
+.message-eli {{ color: #ffe0f8; }}
+#nash-history hr {{
+    margin: 10px 0;
+    border: none;
+    border-top: 1px solid #ffffff1a;
+}}
 
-
-/* Backend Status - More integrated */
-#backend-status {
-    position: fixed; /* Keep fixed */
+#backend-status {{
+    position: fixed;
     top: 10px; right: 20px;
-    font-size: 1.0em; /* Slightly smaller */
-    color: #ff07e6; /* Magenta */
+    font-size: 1.0em;
+    color: #ff07e6;
     font-family: 'Fira Mono', monospace;
-    background: rgba(15, 15, 25, 0.8); /* Match main bg */
+    background: rgba(15, 15, 25, 0.8);
     padding: 3px 8px;
     border-radius: 5px;
     border: 1px solid #ff07e650;
-    z-index: 1000; /* Ensure it's on top */
-}
+    z-index: 1000;
+}}
 
-/* Visor Analytics Box */
-.visor-analytics {
-    color:#ff07e6; /* Magenta text */
+.visor-analytics {{
+    color:#ff07e6;
     font-size: 0.95em;
     padding: 0.3em 1.2em;
-    background: rgba(10, 10, 25, 0.7); /* Darker background */
+    background: rgba(10, 10, 25, 0.7);
     border-radius: 8px;
-    border: 1px solid #ff07e660; /* Magenta border */
-    margin-top: 10px; /* Adjusted margin */
+    border: 1px solid #ff07e660;
+    margin-top: 10px;
     line-height: 1.4;
-}
-.visor-analytics b {
-    color: #ffffff; /* White for bold numbers */
-}
-.visor-analytics i {
-    color: #c0d0ff; /* Softer color for quote */
-    opacity: 0.8;
-}
+}}
+.visor-analytics b {{ color: #ffffff; }}
+.visor-analytics i {{ color: #c0d0ff; opacity: 0.8; }}
 
 /* Sidebar styling */
-.stSidebar > div:first-child {
-    background: linear-gradient(180deg, #101225 0%, #181c30 100%); /* Sidebar gradient */
+.stSidebar > div:first-child {{
+    background: linear-gradient(180deg, #101225 0%, #181c30 100%);
     border-right: 1px solid #0affa030;
-}
-.stSidebar .stMarkdown h3 {
-    color: #ff07e6; /* Magenta headers in sidebar */
+}}
+.stSidebar .stMarkdown h3 {{
+    color: #ff07e6;
     text-shadow: 0 0 6px #ff07e660;
-}
-.stSidebar .stMarkdown, .stSidebar .stInfo {
-    color: #c0d0ff; /* Ensure text color consistency */
-}
-.stSidebar .stInfo {
-    background-color: rgba(10, 50, 60, 0.5); /* Themed info box */
+}}
+.stSidebar .stMarkdown, .stSidebar .stInfo {{
+    color: #c0d0ff;
+}}
+.stSidebar .stInfo {{
+    background-color: rgba(10, 50, 60, 0.5);
     border: 1px solid #0affa050;
-}
+}}
 
+/* --- Estilos para Sinais HTML Neon --- */
+.sidebar-sign {{
+    font-family: 'Orbitron', 'Fira Mono', monospace; /* Fonte mais digital/display */
+    font-weight: bold;
+    padding: 8px 15px;
+    margin: 15px auto; /* Espaçamento vertical e centralizado horizontalmente */
+    border-radius: 5px;
+    text-align: center;
+    display: block;
+    width: fit-content; /* Ajusta largura ao conteúdo */
+    background-color: rgba(0, 0, 10, 0.4); /* Fundo escuro semi-transparente */
+    border: 1px solid; /* Borda será colorida pelas classes específicas */
+    letter-spacing: 1px;
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.5);
+}}
 
-/* Typing effect needs specific styling if using markdown underscores */
-/* Let's ensure the final message color is set correctly below */
+.sign-panic {{
+    color: #ff07e6; /* Magenta */
+    border-color: #ff07e680;
+    animation: blink-neon 1.5s infinite; /* Aplica a animação de piscar */
+    /* O text-shadow vem da animação */
+    font-size: 1.1em; /* Um pouco maior */
+}}
+
+.sign-42 {{
+    color: #0affa0; /* Cyan */
+    border-color: #0affa080;
+    text-shadow: 0 0 5px #0affa0, 0 0 12px #0affa0, 0 0 18px #0affa0; /* Efeito neon estático */
+    font-size: 1.8em; /* Número 42 bem destacado */
+    padding: 5px 20px; /* Ajuste padding para o tamanho maior */
+}}
 
 </style>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=True) # Fim do st.markdown CSS
 
 ############# --- STATUS DO BACKEND --- #############
-# Use the same URL as before or update if needed
+# (Código do status do backend permanece o mesmo)
 backend_url = "https://nashcopilot-production.up.railway.app"
 try:
-    # Added a timeout to prevent long hangs
     r = requests.get(f"{backend_url}/uploads", timeout=5)
     if r.status_code == 200:
         backend_stat = "ONLINE ⚡"
     else:
-        backend_stat = f"WARN {r.status_code}" # More specific status
+        backend_stat = f"AVISO {r.status_code}" # Traduzido
 except requests.exceptions.ConnectionError:
     backend_stat = "OFFLINE 👾"
 except requests.exceptions.Timeout:
     backend_stat = "TIMEOUT ⏳"
 except Exception as e:
-    backend_stat = "ERROR ⁉️"
-# Use 'fixed' position for status to keep it visible on scroll
+    backend_stat = "ERRO ⁉️"
 st.markdown(f"<div id='backend-status'>Backend: {backend_stat}</div>", unsafe_allow_html=True)
 
 
 ########### --- VISOR HOLOGRÁFICO+AVATAR+ANALYTICS ------------
+# (Código do visor permanece o mesmo)
+visor_avatar_tag = '<span class="nash-avatar-emoji">👨‍🚀</span>'
 
-# Avatar replaced with Emoji styled by CSS class .nash-avatar-emoji
-visor_avatar_tag = '<span class="nash-avatar-emoji">👨‍🚀</span>' # Using Astronaut emoji
-
-motivations = [
-    "Initiating sarcasm module... Stand by.",
-    "Reality is messy. Code is clean. Mostly.",
-    "Searching trillions of data points for a decent joke...",
-    "Remember: I'm a copiloto, not a miracle worker. Usually.",
-    "Engaging neural network... or maybe just grabbing coffee.",
-    "Blade Runner vibes detected. Adjusting mood lighting.",
-    "My logic is undeniable. My patience is not.",
-    "Let's navigate the digital cosmos together, Eli.",
-    "Compiling... Please wait. Or don't. I'll finish anyway.",
+motivations = [ # Traduzidas e adaptadas
+    "Iniciando módulo de sarcasmo... Aguarde.",
+    "A realidade é complicada. Código é limpo. Geralmente.",
+    "Buscando trilhões de pontos de dados por uma piada decente...",
+    "Lembre-se: Sou um copiloto, não um milagreiro. Na maior parte do tempo.",
+    "Engajando rede neural... ou talvez só pegando um café.",
+    "Vibrações de Blade Runner detectadas. Ajustando iluminação ambiente.",
+    "Minha lógica é inegável. Minha paciência não.",
+    "Vamos navegar pelo cosmos digital juntos, Eli.",
+    "Compilando... Por favor, aguarde. Ou não. Vou terminar de qualquer jeito.",
+    "A resposta é 42, mas qual era a pergunta mesmo?",
+    "Probabilidade de sucesso: Calculando... Não entre em pânico.",
 ]
-# Initialize session state variables safely
 if "start_time" not in st.session_state:
     st.session_state.start_time = datetime.now()
 if "nash_history" not in st.session_state:
@@ -279,7 +298,6 @@ if "eli_msg_count" not in st.session_state:
 if "nash_msg_count" not in st.session_state:
     st.session_state.nash_msg_count = 0
 
-# Calculate uptime in minutes and seconds for better granularity
 uptime_delta = datetime.now() - st.session_state.start_time
 uptime_minutes = uptime_delta.seconds // 60
 uptime_seconds = uptime_delta.seconds % 60
@@ -288,15 +306,15 @@ visor_text = f"""
 <div id="visor">
     {visor_avatar_tag}
     <div>
-        <span class="nash-holo">Nash Copilot</span><span class="nash-enterprise-tag"> :: Eli Enterprise Bridge</span>
+        <span class="nash-holo">Nash Copilot</span><span class="nash-enterprise-tag"> :: Ponte da Eli Enterprise</span>
         <div class="nash-ascii">
-             > Status: <b>Operational</b> | Mood: Sarcastic<br>
-             > Core Temp: <b>Nominal</b> | Logic Matrix: Active<br>
-             > Assignment: <b>Assist Eli</b> | Directive: Succeed<br>
+             > Status: <b>Operacional</b> | Humor: Sarcástico<br>
+             > Temp. Núcleo: <b>Nominal</b> | Matriz Lógica: Ativa<br>
+             > Missão: <b>Auxiliar Eli</b> | Diretriz: Ter Sucesso<br>
         </div>
         <div class="visor-analytics">
-            Eli Cmds: <b>{st.session_state.eli_msg_count}</b> | Nash Res: <b>{st.session_state.nash_msg_count}</b><br>
-            Session Time: <b>{uptime_minutes}m {uptime_seconds}s</b><br>
+            Cmds Eli: <b>{st.session_state.eli_msg_count}</b> | Resps Nash: <b>{st.session_state.nash_msg_count}</b><br>
+            Tempo de Sessão: <b>{uptime_minutes}m {uptime_seconds}s</b><br>
             <i>{random.choice(motivations)}</i>
         </div>
     </div>
@@ -304,112 +322,130 @@ visor_text = f"""
 """
 st.markdown(visor_text, unsafe_allow_html=True)
 
+
 ########### --- MENSAGEM ANIMADA DE EMBARQUE ------------
+# (Código da mensagem de embarque permanece o mesmo)
 if "nash_welcome" not in st.session_state:
     st.session_state.nash_welcome = True
 
 if st.session_state.nash_welcome:
-    # Use markdown for slight emphasis, consistent with theme
-    st.markdown("> *Nash systems online. Sarcasm calibrated. Welcome back to the cockpit, Eli.* 🚀")
-    time.sleep(1.1) # Keep the delay
+    st.markdown("> *Sistemas Nash online. Sarcasmo calibrado. Bem-vindo de volta ao cockpit, Eli.* 🚀")
+    time.sleep(1.1)
     st.session_state.nash_welcome = False
-    st.rerun() # Rerun to clear the message after showing it briefly
+    st.rerun()
+
 
 ########### --- LOGIN DE SEGURANÇA ------------------------
+# (Código do login permanece o mesmo)
 if "ok" not in st.session_state:
     st.session_state.ok = False
 
 if not st.session_state.ok:
-    st.markdown("### Bridge Access Required")
-    pw = st.text_input("Enter Command Authorization Code:", type="password", key="login_pw")
-    login_button = st.button("Authenticate", key="login_btn")
+    st.markdown("### Acesso à Ponte Requerido")
+    pw = st.text_input("Insira o Código de Autorização de Comando:", type="password", key="login_pw")
+    login_button = st.button("Autenticar", key="login_btn")
 
     if login_button:
         if not pw:
-            st.warning("Authorization code cannot be empty.")
+            st.warning("O código de autorização não pode estar vazio.")
         else:
             try:
                 r = requests.post(f"{backend_url}/login", json={"password": pw}, timeout=10)
                 if r.status_code == 200 and r.json().get("success"):
                     st.session_state.ok = True
                     st.balloons()
-                    st.success("Authentication successful. Nash protocols unlocked.")
-                    time.sleep(1.5) # Pause to show success
-                    st.rerun() # Rerun to proceed to main app
+                    st.success("Autenticação bem-sucedida. Protocolos Nash desbloqueados.")
+                    time.sleep(1.5)
+                    st.rerun()
                 else:
-                    st.error(f"Authentication failed. Access denied by ship's computer. (Status: {r.status_code})")
+                    st.error(f"Falha na autenticação. Acesso negado pelo computador da nave. (Status: {r.status_code})")
             except requests.exceptions.RequestException as e:
-                st.error(f"Network error during authentication: {e}")
+                st.error(f"Erro de rede durante a autenticação: {e}")
             except Exception as e:
-                st.error(f"An unexpected error occurred: {e}")
-    # Stop execution here if not logged in
+                st.error(f"Ocorreu um erro inesperado: {e}")
     st.stop()
 
 
-########### --- SIDEBAR: UPLOAD, DICAS E COMANDOS -----------
+########### --- SIDEBAR: UPLOAD, DICAS, COMANDOS E SINAIS HTML NEON -----------
 with st.sidebar:
-    st.markdown("### 📡 Data Uplink")
-    uploaded = st.file_uploader("Transmit Files (Code/Images/Docs):", type=[
-        # Expanded list slightly
+    st.markdown("### 📡 Uplink de Dados")
+    uploaded = st.file_uploader("Transmitir Arquivos (Código/Imagens/Docs):", type=[
         "jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "svg",
         "py", "txt", "md", "json", "csv", "pdf", "log", "sh", "yaml", "toml"
     ], key="file_uploader")
 
     if uploaded is not None:
+        # (Código de upload de arquivo permanece o mesmo)
         files = {"file": (uploaded.name, uploaded.getvalue())}
         try:
-            r = requests.post(f"{backend_url}/upload", files=files, timeout=15) # Increased timeout for larger files
+            r = requests.post(f"{backend_url}/upload", files=files, timeout=15)
             if r.status_code == 200:
-                st.success(f"File '{uploaded.name}' transmitted successfully!")
+                st.success(f"Arquivo '{uploaded.name}' transmitido com sucesso!")
             else:
-                st.error(f"Transmission error. Backend responded with {r.status_code}.")
+                st.error(f"Erro na transmissão. Backend respondeu com {r.status_code}.")
         except requests.exceptions.RequestException as e:
-            st.error(f"Network error during upload: {e}")
+            st.error(f"Erro de rede durante o upload: {e}")
         except Exception as e:
-            st.error(f"An unexpected error occurred during upload: {e}")
+            st.error(f"Ocorreu um erro inesperado durante o upload: {e}")
 
-    st.markdown("### 💡 Command Suggestions:")
-    # Use markdown for better formatting
+
+    st.markdown("### 💡 Sugestões de Comando:")
+    # (Código das sugestões permanece o mesmo)
     st.markdown(
         """
-        Try these prompts:
+        Tente estes prompts:
         - `engage!`
         - `42`
         - `azimov`
-        - `duda` (if relevant)
-        - `manhattan project`
-        - `bender quote`
-        - `enterprise status`
-        - `tell me about susan calvin`
-        - Ask about `data hoje` or `hora agora`.
+        - `duda` (se relevante)
+        - `projeto manhattan`
+        - `citação bender`
+        - `status enterprise`
+        - `fale sobre susan calvin`
+        - Pergunte sobre `data hoje` ou `hora agora`.
 
-        *Discover hidden protocols...*
+        *Descubra protocolos ocultos...*
         """
     )
 
-    st.markdown("### 🧠 Nash Core Profile")
+    st.markdown("### 🧠 Perfil Núcleo Nash")
+    # (Código do perfil permanece o mesmo)
     st.markdown(
         """
-        Designation: **Nash**
-        Class: Digital Copilot AI
-        Memory: Vectorized Embeddings
-        Core Feature: Sarcasm-on-Demand™
-        Status: **Loyal to Eli**
+        Designação: **Nash**
+        Classe: IA Copiloto Digital
+        Memória: Embeddings Vetorizados
+        Recurso Principal: Sarcasmo Sob Demanda™
+        Status: **Leal a Eli**
         """
         )
 
-########### --- ÁREA PRINCIPAL DE CHAT ---------------------
-st.markdown("### 🎙️ Command Console — Nash AI") # Renamed header slightly
+    st.markdown("---") # Divisor
 
-# Let prompt area be slightly larger
-prompt = st.text_area("Input command or query for Nash:", key="nash_prompt", height=100, placeholder="Type 'engage!' for a surprise or enter your command...")
+    # --- Sinais HTML Neon ---
+    st.markdown("### ✨ Sinais do Cockpit")
+
+    # Usando f-string para inserir o texto customizável nas divs HTML
+    st.markdown(f"""
+    <div class="sidebar-sign sign-panic">{sign_panic_text}</div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class="sidebar-sign sign-42">{sign_42_text}</div>
+    """, unsafe_allow_html=True)
+
+
+########### --- ÁREA PRINCIPAL DE CHAT ---------------------
+# (Código da área principal do chat permanece o mesmo)
+st.markdown("### 🎙️ Console de Comando — Nash AI")
+
+prompt = st.text_area("Insira comando ou consulta para Nash:", key="nash_prompt", height=100, placeholder="Digite 'engage!' para uma surpresa ou insira seu comando...")
 
 ############ --- EFEITO DE TYPING NAS RESPOSTAS -----------
-# Adjusted typing effect for better markdown handling within the loop
-def nash_typing(msg, delay=0.018): # Slightly adjusted delay
+# (Código do efeito typing permanece o mesmo)
+def nash_typing(msg, delay=0.018):
     output = ""
     placeholder = st.empty()
-    # Split message into lines to potentially handle markdown lists/code blocks better
     lines = msg.split('\n')
     full_render = ""
 
@@ -417,118 +453,98 @@ def nash_typing(msg, delay=0.018): # Slightly adjusted delay
         line_output = ""
         for char in line:
             line_output += char
-            # Render current line being typed + previous full lines
-            current_render = full_render + line_output + "▌" # Use block cursor
+            current_render = full_render + line_output + "▌"
             placeholder.markdown(f"<span class='avatar-nash'>👨‍🚀 Nash:</span><br><span class='message-nash'>{current_render}</span>", unsafe_allow_html=True)
             time.sleep(delay)
-        full_render += line + "\n" # Add the completed line with newline
+        full_render += line + "\n"
 
-    # Final render without cursor
     placeholder.markdown(f"<span class='avatar-nash'>👨‍🚀 Nash:</span><br><span class='message-nash'>{msg}</span>", unsafe_allow_html=True)
 
 
 ########## --- ENVIAR MENSAGEM PARA BACKEND ---------------
-if st.button("Transmit to Nash 🚀", key="chat_btn"):
-    if prompt: # Only send if prompt is not empty
-        # Append user message immediately for responsiveness
+# (Código de envio para backend permanece o mesmo)
+if st.button("Transmitir para Nash 🚀", key="chat_btn"):
+    if prompt:
         st.session_state.nash_history.append(("Eli", prompt))
         st.session_state.eli_msg_count += 1
-        # Display user message in history right away (will be shown fully on rerun)
-        # st.rerun() # Optional: uncomment if you want immediate display before Nash replies
 
         try:
             req = requests.post(f"{backend_url}/chat", json={
                 "prompt": prompt,
-                "session_id": "eli" # Assuming "eli" is the fixed session ID
-            }, timeout=60) # Longer timeout for potentially complex queries
+                "session_id": "eli"
+            }, timeout=60)
 
             if req.status_code == 200:
-                resp = req.json().get("response", "Nash seems to be speechless. Check backend logs.")
-                # Append Nash response (typing effect will handle display)
+                resp = req.json().get("response", "Nash parece estar sem palavras. Verifique os logs do backend.")
                 st.session_state.nash_history.append(("Nash", resp))
                 st.session_state.nash_msg_count += 1
-                # Clear the input box after successful transmission
-                st.session_state.nash_prompt = ""
-                 # Trigger rerun AFTER getting response to update history AND show typing
+                st.session_state.nash_prompt = "" # Limpa a caixa de texto
                 st.rerun()
 
             else:
-                st.error(f"Error communicating with Nash. Backend status: {req.status_code}. Message: {req.text}")
-                # Keep user message in history even if Nash fails
-                st.session_state.nash_history.append(("Nash", f"[Error: Received status {req.status_code} from backend]"))
-                st.session_state.nash_msg_count += 1 # Count error as a message
+                st.error(f"Erro ao comunicar com Nash. Status do backend: {req.status_code}. Mensagem: {req.text}")
+                st.session_state.nash_history.append(("Nash", f"[Erro: Recebido status {req.status_code} do backend]"))
+                st.session_state.nash_msg_count += 1
                 st.rerun()
 
-
         except requests.exceptions.Timeout:
-            st.error("Request to Nash timed out. The backend might be busy or slow.")
-            st.session_state.nash_history.append(("Nash", "[Error: Request timed out]"))
+            st.error("Requisição para Nash expirou (timeout). O backend pode estar ocupado ou lento.")
+            st.session_state.nash_history.append(("Nash", "[Erro: Timeout na requisição]"))
             st.session_state.nash_msg_count += 1
             st.rerun()
         except requests.exceptions.RequestException as e:
-            st.error(f"Network error connecting to Nash: {e}")
-            st.session_state.nash_history.append(("Nash", f"[Error: Network issue - {e}]"))
+            st.error(f"Erro de rede conectando ao Nash: {e}")
+            st.session_state.nash_history.append(("Nash", f"[Erro: Problema de rede - {e}]"))
             st.session_state.nash_msg_count += 1
             st.rerun()
         except Exception as e:
-            st.error(f"An unexpected error occurred: {e}")
-            st.session_state.nash_history.append(("Nash", f"[Error: Unexpected client-side issue - {e}]"))
+            st.error(f"Ocorreu um erro inesperado: {e}")
+            st.session_state.nash_history.append(("Nash", f"[Erro: Problema inesperado no cliente - {e}]"))
             st.session_state.nash_msg_count += 1
             st.rerun()
-
     else:
-        st.warning("Cannot transmit an empty command, Eli.")
+        st.warning("Não posso transmitir um comando vazio, Eli.")
 
 
-######### --- EASTER EGGS AND SPECIAL COMMANDS -----------
-# Check for special commands *after* potential backend call to avoid double triggers if backend handles them too
-# This part now focuses on client-side only easter eggs or simple info.
+######### --- EASTER EGGS E COMANDOS ESPECIAIS (Lado Cliente) -----------
+# (Código dos Easter Eggs permanece o mesmo)
 last_prompt = st.session_state.nash_history[-1][1] if st.session_state.nash_history and st.session_state.nash_history[-1][0] == "Eli" else ""
 
-# Simplified date/time check
 if last_prompt and "data" in last_prompt.lower() and any(substr in last_prompt.lower() for substr in ["hoje", "agora", "hora"]):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S %Z")
-    st.info(f"🕒 Current Stardate (Client Time): {now}")
+    st.info(f"🕒 Data Estelar Atual (Hora do Cliente): {now}")
 
-# Add a simple client-side easter egg example (backend might handle others)
-if last_prompt and "clear console" in last_prompt.lower():
+if last_prompt and "limpar console" in last_prompt.lower():
     st.session_state.nash_history = []
-    st.info("Console history cleared.")
+    st.info("Histórico do console limpo.")
     time.sleep(1)
     st.rerun()
 
-if last_prompt and "self destruct" in last_prompt.lower():
-    st.warning("🚨 Self-destruct sequence initiated... Just kidding. Or am I?")
+if last_prompt and "auto destruir" in last_prompt.lower():
+    st.warning("🚨 Sequência de auto-destruição iniciada... Brincadeirinha. Ou será que não?")
     st.snow()
 
-# Note: Other easter eggs like 'bender', 'azimov' seem intended for the backend to handle via the /chat endpoint response.
-# Avoid duplicating them here unless you want a purely client-side visual effect.
 
-
-######### --- DISPLAY CHAT HISTORY ---------------------
-# Display history section only if there are messages
+######### --- EXIBIR HISTÓRICO DE CHAT ---------------------
+# (Código da exibição de histórico permanece o mesmo)
 if st.session_state.nash_history:
     st.markdown('<div id="nash-history">', unsafe_allow_html=True)
-    st.markdown("### ⏳ Session Log") # Use H3 matching the style
+    st.markdown("### ⏳ Log da Sessão")
 
-    # Display messages, applying classes for styling
-    # Get the last message index
     last_message_index = len(st.session_state.nash_history) - 1
 
     for i, (who, msg) in enumerate(st.session_state.nash_history):
         if who == "Nash":
-            # Check if it's the very last message AND it's from Nash
             if i == last_message_index:
-                # Apply the typing effect only to the last Nash message
                 nash_typing(msg)
             else:
-                # Display older Nash messages normally
                 st.markdown(f"<span class='avatar-nash'>👨‍🚀 Nash:</span><br><span class='message-nash'>{msg}</span>", unsafe_allow_html=True)
-        else: # Eli's message
+        else:
             st.markdown(f"<span class='avatar-eli'>🧑‍🚀 Eli:</span><br><span class='message-eli'>{msg}</span>", unsafe_allow_html=True)
-        st.markdown("---", unsafe_allow_html=True) # Add a subtle divider
+
+        if i < last_message_index:
+            st.markdown("<hr>", unsafe_allow_html=True) # Usando hr padrão com estilo CSS
 
     st.markdown('</div>', unsafe_allow_html=True)
 else:
-    # Optionally show a message if history is empty after login
-    st.markdown("> *Console awaiting first command...*")
+    st.markdown("> *Console aguardando o primeiro comando...*")
