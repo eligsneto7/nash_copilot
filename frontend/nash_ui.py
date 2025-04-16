@@ -4,7 +4,6 @@ import requests
 import time
 from datetime import datetime
 import random
-import base64
 
 # --- Textos Customizáveis para os Sinais ---
 sign_panic_text = "NÃO ENTRE EM PÂNICO"
@@ -15,16 +14,6 @@ sign_42_text = "42"
 if "clear_prompt_on_next_run" not in st.session_state:
     st.session_state.clear_prompt_on_next_run = False
 # ----------------------------------------------------
-
-############### --- IMAGENS --- ##############
-# Referência para imagens externas em vez de base64
-background_url = "https://i.ibb.co/FqS4MNC/dark-grid.png"
-scanline_url = "https://i.ibb.co/vPRjdXk/scanlines.png"
-noise_url = "https://i.ibb.co/XZ44d4S/noise.png"
-
-# --- Função para incorporar imagens base64 em CSS --- (REMOVIDA, USANDO URLS DIRETAS)
-# def get_img_as_base64_css(base64_data):
-#     return f"url('{base64_data}')"
 
 ########### --- ESTILO V7 - RETRO COCKPIT EDITION --- #############
 st.markdown(f"""
