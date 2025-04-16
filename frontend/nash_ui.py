@@ -33,22 +33,22 @@ st.markdown(f"""
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;700&family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
 
 /* --- ANIMAÇÕES --- */
-@keyframes scan {
+@keyframes scan {{
   0%, 100% {{ background-position: 0% 0%; }}
   50% {{ background-position: 100% 100%; }}
-}
+}}
 
-@keyframes glow {
+@keyframes glow {{
   0%, 100% {{ text-shadow: 0 0 5px rgba(10, 255, 160, 0.7), 0 0 10px rgba(10, 255, 160, 0.5); }}
   50% {{ text-shadow: 0 0 15px rgba(10, 255, 160, 0.9), 0 0 25px rgba(10, 255, 160, 0.7); }}
-}
+}}
 
-@keyframes blink {
+@keyframes blink {{
   0%, 100% {{ opacity: 1; }}
   50% {{ opacity: 0.7; }}
-}
+}}
 
-@keyframes flicker {
+@keyframes flicker {{
   0%, 100% {{ opacity: 1; }}
   92% {{ opacity: 1; }}
   93% {{ opacity: 0.4; }}
@@ -57,19 +57,19 @@ st.markdown(f"""
   96% {{ opacity: 1; }}
   97% {{ opacity: 0.5; }}
   98% {{ opacity: 1; }}
-}
+}}
 
-@keyframes terminal-cursor {
+@keyframes terminal-cursor {{
   0%, 100% {{ opacity: 1; }}
   50% {{ opacity: 0; }}
-}
+}}
 
 /* --- ESTILOS BASE --- */
 body, .stApp {{
     background-color: #0a0d12 !important;
     color: #c8e3ff !important;
     font-family: 'Share Tech Mono', 'Fira Code', monospace !important;
-    background-image: {get_img_as_base64_css(background_retro)}, 
+    background-image: {{{get_img_as_base64_css(background_retro)}}}, 
                       linear-gradient(135deg, rgba(2,9,22,0.97) 0%, rgba(7,19,37,0.92) 100%);
     background-size: 200px auto, 100% 100%;
     background-position: center;
@@ -88,7 +88,7 @@ body::after {{
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: {get_img_as_base64_css(scan_texture)};
+    background-image: {{{get_img_as_base64_css(scan_texture)}}};
     opacity: 0.03;
     pointer-events: none;
     z-index: 1000;
