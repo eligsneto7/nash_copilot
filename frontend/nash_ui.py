@@ -15,96 +15,117 @@ if "clear_prompt_on_next_run" not in st.session_state:
     st.session_state.clear_prompt_on_next_run = False
 # ----------------------------------------------------
 
-########### --- ESTILO V7 - RETRO COCKPIT EDITION --- #############
-st.markdown(f"""
+########### --- ESTILO V7 - RETRO COCKPIT EDITION (SEM IMAGENS EXTERNAS) --- #############
+st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;700&family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
 
 /* --- ANIMAÇÕES --- */
-@keyframes scan {{
-  0%, 100% {{ background-position: 0% 0%; }}
-  50% {{ background-position: 100% 100%; }}
-}}
+@keyframes scan {
+  0%, 100% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+}
 
-@keyframes glow {{
-  0%, 100% {{ text-shadow: 0 0 5px rgba(10, 255, 160, 0.7), 0 0 10px rgba(10, 255, 160, 0.5); }}
-  50% {{ text-shadow: 0 0 15px rgba(10, 255, 160, 0.9), 0 0 25px rgba(10, 255, 160, 0.7); }}
-}}
+@keyframes glow {
+  0%, 100% { text-shadow: 0 0 5px rgba(10, 255, 160, 0.7), 0 0 10px rgba(10, 255, 160, 0.5); }
+  50% { text-shadow: 0 0 15px rgba(10, 255, 160, 0.9), 0 0 25px rgba(10, 255, 160, 0.7); }
+}
 
-@keyframes blink {{
-  0%, 100% {{ opacity: 1; }}
-  50% {{ opacity: 0.7; }}
-}}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
 
-@keyframes flicker {{
-  0%, 100% {{ opacity: 1; }}
-  92% {{ opacity: 1; }}
-  93% {{ opacity: 0.4; }}
-  94% {{ opacity: 1; }}
-  95% {{ opacity: 0.8; }}
-  96% {{ opacity: 1; }}
-  97% {{ opacity: 0.5; }}
-  98% {{ opacity: 1; }}
-}}
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.4; }
+  94% { opacity: 1; }
+  95% { opacity: 0.8; }
+  96% { opacity: 1; }
+  97% { opacity: 0.5; }
+  98% { opacity: 1; }
+}
 
-@keyframes terminal-cursor {{
-  0%, 100% {{ opacity: 1; }}
-  50% {{ opacity: 0; }}
-}}
+@keyframes terminal-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes blink-neon {
+  0%, 100% { opacity: 1; text-shadow: 0 0 7px #ff07e6, 0 0 15px #ff07e6, 0 0 20px #ff07e6; }
+  50% { opacity: 0.7; text-shadow: 0 0 5px #ff07e6a0, 0 0 10px #ff07e6a0; }
+}
 
 /* --- ESTILOS BASE --- */
-body, .stApp {{
+body, .stApp {
     background-color: #0a0d12 !important;
     color: #c8e3ff !important;
     font-family: 'Share Tech Mono', 'Fira Code', monospace !important;
-    background-image: url('{background_url}'), 
-                      linear-gradient(135deg, rgba(2,9,22,0.97) 0%, rgba(7,19,37,0.92) 100%);
-    background-size: 200px auto, 100% 100%;
-    background-position: center;
-    background-repeat: repeat, no-repeat;
-    background-attachment: fixed;
+    background: linear-gradient(135deg, rgba(2,9,22,0.97) 0%, rgba(7,19,37,0.92) 100%);
     margin: 0;
     overflow-x: hidden;
     position: relative;
-}}
+}
 
-/* Efeito de scan-lines em toda a tela */
-body::after {{
+/* Efeito de scan-lines em toda a tela usando gradiente repetido */
+body::before {
     content: '';
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: url('{scanline_url}');
-    opacity: 0.03;
+    background-image: repeating-linear-gradient(
+        0deg, 
+        transparent, 
+        transparent 2px, 
+        rgba(10, 255, 255, 0.01) 2px, 
+        rgba(10, 255, 255, 0.01) 3px
+    );
+    opacity: 0.1;
     pointer-events: none;
     z-index: 1000;
-    animation: scan 120s linear infinite;
-}}
+}
 
-/* Ajustes para texto padrão */
-p, div, span, li {{
-    color: #c8e3ff;
-    text-shadow: 0 0 2px rgba(200, 227, 255, 0.5);
-}}
-
-/* Flicker e Noise Effect */
-.noise-container {{
+/* Efeito de grid usando pseudoelemento */
+body::after {
+    content: '';
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: url('{noise_url}');
-    opacity: 0.015;
+    background-image: 
+        linear-gradient(rgba(0, 40, 70, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 40, 70, 0.05) 1px, transparent 1px);
+    background-size: 20px 20px;
     pointer-events: none;
     z-index: 999;
+}
+
+/* Efeito de ruído sutíl */
+.noise {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(0, 10, 20, 0.1) 50%,
+        transparent 100%
+    );
+    background-size: 100% 10px;
+    opacity: 0.015;
+    pointer-events: none;
+    z-index: 998;
     animation: flicker 10s infinite;
-}}
+}
 
 /* CONTAINER PRINCIPAL */
-section.main > div {{
+section.main > div {
     max-width: 1200px !important;
     background: linear-gradient(170deg, rgba(12,18,30,0.95) 0%, rgba(20,30,45,0.9) 100%) !important;
     border-radius: 12px !important;
@@ -115,10 +136,10 @@ section.main > div {{
     margin: 0 auto !important;
     position: relative;
     z-index: 10;
-}}
+}
 
 /* VISOR REDESENHADO - Mais destaque e altura reduzida em mobile */
-#visor {{
+#visor {
     background: linear-gradient(135deg, #060c1df2 80%, #3e064ee0 140%);
     border-radius: 12px;
     margin-bottom: 20px;
@@ -132,10 +153,10 @@ section.main > div {{
     gap: clamp(15px, 3vw, 25px);
     position: relative;
     overflow: hidden;
-}}
+}
 
 /* Efeito de highlight no visor */
-#visor::before {{
+#visor::before {
     content: '';
     position: absolute;
     top: 0;
@@ -148,25 +169,25 @@ section.main > div {{
                 transparent);
     transform: skewX(-25deg);
     animation: scan 8s ease-in-out infinite;
-}}
+}
 
 /* AVATAR EMOJI - Mantido mas otimizado para mobile */
-.nash-avatar-emoji {{
+.nash-avatar-emoji {
     font-size: clamp(45px, 10vw, 65px);
     filter: drop-shadow(0 0 12px rgba(10, 255, 160, 0.7));
     margin-right: clamp(10px, 2vw, 15px);
     line-height: 1;
     animation: glow 4s ease-in-out infinite;
-}}
+}
 
 /* TÍTULO NASH E TAGS - Melhor responsividade */
 .nash-holo, 
-.nash-enterprise-tag {{
+.nash-enterprise-tag {
     font-family: 'Orbitron', 'Share Tech Mono', monospace;
     letter-spacing: 1px;
-}}
+}
 
-.nash-holo {{ 
+.nash-holo { 
     font-size: clamp(1.6em, 5vw, 2.1em); 
     font-weight: 700;
     color: #0affa0; 
@@ -174,16 +195,16 @@ section.main > div {{
                  0 0 5px rgba(255, 255, 255, 0.4);
     margin-bottom: 3px; 
     user-select: none;
-}}
+}
 
-.nash-enterprise-tag {{ 
+.nash-enterprise-tag { 
     font-size: clamp(0.7em, 3vw, 0.9em);
     color: rgba(255, 7, 230, 0.8);
     font-family: 'Share Tech Mono', monospace;
-}}
+}
 
 /* ASCII ART - Melhor legibilidade */
-.nash-ascii {{ 
+.nash-ascii { 
     font-family: 'Fira Code', monospace;
     color: rgba(10, 255, 160, 0.8);
     letter-spacing: 0;
@@ -193,16 +214,16 @@ section.main > div {{
     margin-top: -2px;
     margin-bottom: 5px;
     white-space: nowrap;
-}}
+}
 
-.nash-ascii b {{ 
+.nash-ascii b { 
     color: #ff07e6;
     font-weight: bold;
     text-shadow: 0 0 5px rgba(255, 7, 230, 0.6);
-}}
+}
 
 /* ANALYTICS NO VISOR - Melhor legibilidade */
-.visor-analytics {{
+.visor-analytics {
     color: #ff07e6;
     font-size: clamp(0.75em, 2.8vw, 0.95em);
     padding: 0.5em 1em;
@@ -212,21 +233,21 @@ section.main > div {{
     margin-top: 10px;
     line-height: 1.4;
     box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
-}}
+}
 
-.visor-analytics b {{ 
+.visor-analytics b { 
     color: #ffffff;
     text-shadow: 0 0 3px rgba(255, 255, 255, 0.5);
-}}
+}
 
-.visor-analytics i {{ 
+.visor-analytics i { 
     color: #c8e3ff;
     opacity: 0.9;
     font-style: italic;
-}}
+}
 
 /* BOTÕES - Design melhorado e mais consistente */
-.stButton>button {{
+.stButton>button {
     color: #e0e8ff !important;
     background: linear-gradient(180deg, #1a2139 0%, #121629 100%) !important;
     border-radius: 8px !important;
@@ -242,24 +263,24 @@ section.main > div {{
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-}}
+}
 
-.stButton>button:hover {{ 
+.stButton>button:hover { 
     background: linear-gradient(180deg, #202540 0%, #1a2139 100%) !important;
     border-color: rgba(10, 255, 160, 0.9) !important;
     box-shadow: 0 0 15px rgba(10, 255, 160, 0.4) !important;
     color: #ffffff !important;
     transform: translateY(-2px) !important;
-}}
+}
 
-.stButton>button:active {{ 
+.stButton>button:active { 
     background: #101225 !important;
     transform: translateY(1px) !important;
     box-shadow: 0 0 5px rgba(10, 255, 160, 0.2) !important;
-}}
+}
 
 /* INPUT AREA - Contraste melhorado drasticamente */
-.stTextArea textarea {{
+.stTextArea textarea {
     background: #0a0e1b !important;
     color: #e0f0ff !important;
     border: 1px solid rgba(10, 255, 160, 0.4) !important;
@@ -271,42 +292,42 @@ section.main > div {{
     line-height: 1.5 !important;
     resize: vertical !important;
     transition: all 0.3s ease !important;
-}}
+}
 
-.stTextArea textarea:focus {{
+.stTextArea textarea:focus {
     border-color: rgba(10, 255, 160, 0.8) !important;
     box-shadow: 0 0 10px rgba(10, 255, 160, 0.3), 
                 inset 0 0 10px rgba(0, 0, 0, 0.7) !important;
     background: #0c1022 !important;
-}}
+}
 
 /* Placeholder mais visível */
-.stTextArea textarea::placeholder {{ 
+.stTextArea textarea::placeholder { 
     color: rgba(10, 255, 160, 0.7) !important;
     opacity: 0.7 !important;
-}}
+}
 
 /* FILE UPLOADER - Design refinado */
-.stFileUploader {{
+.stFileUploader {
     background: #0a0e1b !important;
     border: 1px dashed rgba(10, 255, 160, 0.5) !important;
     border-radius: 8px !important;
     padding: 15px !important;
     transition: all 0.3s ease !important;
-}}
+}
 
-.stFileUploader:hover {{
+.stFileUploader:hover {
     background: #0c1022 !important;
     border-color: rgba(10, 255, 160, 0.8) !important;
-}}
+}
 
-.stFileUploader label {{
+.stFileUploader label {
     color: rgba(10, 255, 160, 0.9) !important;
     font-family: 'Share Tech Mono', 'Fira Code', monospace !important;
-}}
+}
 
 /* HISTÓRICO DE CHAT - Contraste melhorado drasticamente */
-#nash-history {{
+#nash-history {
     background: rgba(8, 12, 20, 0.95);
     border-radius: 10px;
     padding: 1.5rem;
@@ -323,10 +344,10 @@ section.main > div {{
                 0 0 10px rgba(10, 235, 255, 0.1);
     position: relative;
     overflow: hidden;
-}}
+}
 
 /* Efeito de scan no histórico */
-#nash-history::before {{
+#nash-history::before {
     content: '';
     position: absolute;
     top: 0;
@@ -343,9 +364,9 @@ section.main > div {{
     animation: scan 10s linear infinite;
     pointer-events: none;
     z-index: 1;
-}}
+}
 
-#nash-history h3 {{
+#nash-history h3 {
     color: #ff07e6;
     text-shadow: 0 0 8px rgba(255, 7, 230, 0.5);
     border-bottom: 1px solid rgba(255, 7, 230, 0.4);
@@ -357,10 +378,10 @@ section.main > div {{
     letter-spacing: 1px;
     position: relative;
     z-index: 2;
-}}
+}
 
 /* AVATARES NO HISTÓRICO - Maior destaque */
-.avatar-nash, .avatar-eli {{
+.avatar-nash, .avatar-eli {
     font-weight: bold;
     padding: 3px 8px;
     border-radius: 4px;
@@ -368,24 +389,24 @@ section.main > div {{
     margin-bottom: 5px;
     letter-spacing: 1px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-}}
+}
 
-.avatar-nash {{ 
+.avatar-nash { 
     color: #0affa0;
     background-color: rgba(10, 255, 160, 0.1);
     border: 1px solid rgba(10, 255, 160, 0.3);
     text-shadow: 0 0 5px rgba(10, 255, 160, 0.5);
-}}
+}
 
-.avatar-eli {{ 
+.avatar-eli { 
     color: #ff07e6;
     background-color: rgba(255, 7, 230, 0.1);
     border: 1px solid rgba(255, 7, 230, 0.3);
     text-shadow: 0 0 5px rgba(255, 7, 230, 0.5);
-}}
+}
 
 /* MENSAGENS - Contraste DRASTICAMENTE melhorado */
-.message-nash, .message-eli {{
+.message-nash, .message-eli {
     display: block;
     padding: 10px 15px;
     border-radius: 8px;
@@ -396,22 +417,22 @@ section.main > div {{
     position: relative;
     white-space: pre-wrap;
     word-wrap: break-word;
-}}
+}
 
-.message-nash {{ 
+.message-nash { 
     color: #e8fff8; 
     background-color: rgba(10, 255, 160, 0.07);
     border-left: 3px solid rgba(10, 255, 160, 0.5);
-}}
+}
 
-.message-eli {{ 
+.message-eli { 
     color: #fff0fa;
     background-color: rgba(255, 7, 230, 0.07); 
     border-left: 3px solid rgba(255, 7, 230, 0.5);
-}}
+}
 
 /* Efeito cursor em mensagens de Nash sendo digitadas */
-.message-nash .cursor {{
+.message-nash .cursor {
     display: inline-block;
     width: 10px;
     height: 18px;
@@ -419,10 +440,10 @@ section.main > div {{
     animation: terminal-cursor 1s infinite;
     vertical-align: middle;
     margin-left: 2px;
-}}
+}
 
 /* Divisor melhorado */
-#nash-history hr {{
+#nash-history hr {
     margin: 20px 0;
     border: none;
     height: 1px;
@@ -432,10 +453,10 @@ section.main > div {{
         rgba(10, 255, 160, 0.2),
         rgba(10, 255, 160, 0.05)
     );
-}}
+}
 
 /* STATUS DO BACKEND - Mais destaque */
-#backend-status {{
+#backend-status {
     position: fixed;
     top: 10px;
     right: 20px;
@@ -449,16 +470,16 @@ section.main > div {{
     z-index: 1000;
     text-shadow: 0 0 5px rgba(255, 7, 230, 0.5);
     box-shadow: 0 0 10px rgba(255, 7, 230, 0.2);
-}}
+}
 
 /* SIDEBAR - Design refinado */
-.stSidebar > div:first-child {{
+.stSidebar > div:first-child {
     background: linear-gradient(180deg, #0a0d15 0%, #131a2c 100%);
     border-right: 1px solid rgba(10, 255, 160, 0.2);
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-}}
+}
 
-.stSidebar .stMarkdown h3 {{
+.stSidebar .stMarkdown h3 {
     color: #ff07e6;
     text-shadow: 0 0 6px rgba(255, 7, 230, 0.4);
     font-family: 'Orbitron', 'Share Tech Mono', monospace;
@@ -468,14 +489,14 @@ section.main > div {{
     border-bottom: 1px solid rgba(255, 7, 230, 0.3);
     padding-bottom: 5px;
     margin-bottom: 15px;
-}}
+}
 
-.stSidebar .stMarkdown {{
+.stSidebar .stMarkdown {
     color: #c8e3ff;
-}}
+}
 
 /* SINAIS HTML NEON - Design melhorado */
-.sidebar-sign {{
+.sidebar-sign {
     font-family: 'Orbitron', 'Share Tech Mono', monospace;
     font-weight: bold;
     padding: 8px 15px;
@@ -490,10 +511,10 @@ section.main > div {{
     box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.6);
     position: relative;
     overflow: hidden;
-}}
+}
 
 /* Efeito de scan lines nos sinais */
-.sidebar-sign::before {{
+.sidebar-sign::before {
     content: '';
     position: absolute;
     top: 0;
@@ -508,142 +529,128 @@ section.main > div {{
         rgba(0, 0, 0, 0.1) 2px
     );
     pointer-events: none;
-}}
+}
 
-.sign-panic {{ 
+.sign-panic { 
     color: #ff07e6;
     border-color: rgba(255, 7, 230, 0.5);
     animation: blink 1.5s infinite;
     font-size: 1.1em;
     text-shadow: 0 0 10px rgba(255, 7, 230, 0.8);
-}}
+}
 
-.sign-42 {{ 
+.sign-42 { 
     color: #0affa0;
     border-color: rgba(10, 255, 160, 0.5);
     text-shadow: 0 0 5px #0affa0, 0 0 12px #0affa0, 0 0 18px #0affa0;
     font-size: 1.8em;
     padding: 5px 20px;
-}}
+}
 
 /* ALERTA E MENSAGENS */
-.stAlert {{ background-color: rgba(10, 20, 40, 0.8) !important; }}
-.stAlert p {{ color: #e0e8ff !important; }}
-.stWarning {{ border-color: rgba(255, 200, 0, 0.5) !important; }}
-.stWarning p {{ color: #ffeb99 !important; }}
-.stError {{ border-color: rgba(255, 50, 50, 0.5) !important; }}
-.stError p {{ color: #ffb3b3 !important; }}
-.stInfo {{ border-color: rgba(0, 150, 255, 0.5) !important; }}
-.stInfo p {{ color: #b3e0ff !important; }}
-.stSuccess {{ border-color: rgba(10, 255, 160, 0.5) !important; }}
-.stSuccess p {{ color: #ccffeb !important; }}
+.stAlert { background-color: rgba(10, 20, 40, 0.8) !important; }
+.stAlert p { color: #e0e8ff !important; }
+.stWarning { border-color: rgba(255, 200, 0, 0.5) !important; }
+.stWarning p { color: #ffeb99 !important; }
+.stError { border-color: rgba(255, 50, 50, 0.5) !important; }
+.stError p { color: #ffb3b3 !important; }
+.stInfo { border-color: rgba(0, 150, 255, 0.5) !important; }
+.stInfo p { color: #b3e0ff !important; }
+.stSuccess { border-color: rgba(10, 255, 160, 0.5) !important; }
+.stSuccess p { color: #ccffeb !important; }
 
 /* MARKDOWN MELHORADO */
-blockquote {{
+blockquote {
     border-left: 3px solid rgba(10, 255, 160, 0.5) !important;
     background-color: rgba(10, 255, 160, 0.05) !important;
     padding: 10px 15px !important;
     margin: 10px 0 !important;
     border-radius: 0 8px 8px 0 !important;
     color: #e0ffff !important;
-}}
+}
 
-code {{
+code {
     background-color: rgba(10, 10, 25, 0.6) !important;
     color: #e0ffff !important;
     padding: 2px 5px !important;
     border-radius: 4px !important;
     font-family: 'Fira Code', monospace !important;
     border: 1px solid rgba(10, 255, 160, 0.2) !important;
-}}
+}
 
 /* Melhorias para Mobile */
-@media (max-width: 768px) {{
-    #visor {{
+@media (max-width: 768px) {
+    #visor {
         flex-direction: column;
         text-align: center;
         padding: 15px 10px;
-    }}
+    }
     
-    .nash-avatar-emoji {{
+    .nash-avatar-emoji {
         margin-right: 0;
         margin-bottom: 10px;
-    }}
+    }
     
-    .nash-ascii {{
+    .nash-ascii {
         white-space: normal;
         word-break: break-word;
-    }}
+    }
     
     /* Ajustes para histórico em telas pequenas */
-    #nash-history {{
+    #nash-history {
         padding: 15px 10px;
-    }}
+    }
     
-    .message-nash, .message-eli {{
+    .message-nash, .message-eli {
         padding: 8px 12px;
-    }}
+    }
     
     /* Mais espaço no padding da página em dispositivos móveis */
-    section.main > div {{
+    section.main > div {
         padding: 10px !important;
-    }}
+    }
     
     /* Status do backend em mobile */
-    #backend-status {{
+    #backend-status {
         font-size: 0.75em;
         padding: 3px 6px;
         top: 5px;
         right: 10px;
-    }}
-}}
-
-/* Efeito de ruído dinâmico para o fundo */
-@keyframes grain {{
-    0%, 100% {{ transform: translate(0, 0); }}
-    10% {{ transform: translate(-5%, -5%); }}
-    20% {{ transform: translate(-10%, 5%); }}
-    30% {{ transform: translate(5%, -10%); }}
-    40% {{ transform: translate(-5%, 15%); }}
-    50% {{ transform: translate(-10%, 5%); }}
-    60% {{ transform: translate(15%, 0); }}
-    70% {{ transform: translate(0, 10%); }}
-    80% {{ transform: translate(-15%, 0); }}
-    90% {{ transform: translate(10%, 5%); }}
-}}
+    }
+}
 
 /* Scroll bar personalizada */
-::-webkit-scrollbar {{
+::-webkit-scrollbar {
     width: 8px;
     height: 8px;
-}}
-::-webkit-scrollbar-track {{
+}
+::-webkit-scrollbar-track {
     background: rgba(10, 13, 18, 0.8);
-}}
-::-webkit-scrollbar-thumb {{
+}
+::-webkit-scrollbar-thumb {
     background: rgba(10, 255, 160, 0.5);
     border-radius: 4px;
-}}
-::-webkit-scrollbar-thumb:hover {{
+}
+::-webkit-scrollbar-thumb:hover {
     background: rgba(10, 255, 160, 0.7);
-}}
+}
 
 /* Headers e Text styling refinados */
-h1, h2, h3, h4, h5, h6 {{
+h1, h2, h3, h4, h5, h6 {
     font-family: 'Orbitron', 'Share Tech Mono', monospace !important;
     color: #0affa0 !important;
     text-shadow: 0 0 10px rgba(10, 255, 160, 0.4) !important;
-}}
+}
 
 /* Estilos específicos para botões nos modais do Streamlit */
-.stButton.css-1kqq6q3 button {{
+.stButton.css-1kqq6q3 button {
     background-color: rgba(10, 255, 160, 0.1) !important;
     color: #0affa0 !important;
-}}
+}
 
 </style>
 
-<div class="noise-container"></div>
+<div class="noise"></div>
 """, unsafe_allow_html=True) # Fim do st.markdown CSS
 
 
@@ -843,7 +850,7 @@ if last_prompt and "data" in last_prompt.lower() and any(substr in last_prompt.l
 if last_prompt and "limpar console" in last_prompt.lower():
     st.session_state.nash_history = []; st.info("Histórico do console limpo."); time.sleep(1); st.rerun()
 if last_prompt and "auto destruir" in last_prompt.lower():
-    st.warning("🚨 Sequência de auto-destrução iniciada... Brincadeirinha."); st.snow()
+    st.warning("🚨 Sequência de auto-destruição iniciada... Brincadeirinha."); st.snow()
 # Novo Easter Egg
 if last_prompt and "engage" in last_prompt.lower():
     st.success("🚀 Sistemas de propulsão engajados!"); 
