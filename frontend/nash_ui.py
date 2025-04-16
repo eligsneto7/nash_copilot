@@ -16,16 +16,15 @@ if "clear_prompt_on_next_run" not in st.session_state:
     st.session_state.clear_prompt_on_next_run = False
 # ----------------------------------------------------
 
-############### --- IMAGENS CODIFICADAS EM BASE64 --- ##############
-# Imagem de fundo retro hacker (otimizada para tamanho e qualidade)
-background_retro = "data:image/gif;base64,R0lGODlhcgCKAfAAAAAAAP///yH5BAAAAP8ALAAAAAByAIoBAAAC/4SPqcvtD6OctNqLs968+w+G4kiWZoemqKiyXLu+cCzPQ03feI7vfO//wKBwSCwaj8ikcslsOp9Qo3TEvBCv2Kz2is0WveAwdkwum8/or1JNXrvfcDjyLafb73hg3q7f8/v+gIGCg4QqfGWBh4iJiouMLYZwipCRkpOUlS2PapSZmpucnZ4vmJ+goaKjpKMWpqipqquso5qrrq+wsbKlrbO0tba3oLG4ubq7vKO0vb7AwcKfvsPExcaav8fIycrLl8nMzc7PzX7Q0dLT1MfN1dbX2Lm22drb3Lnc3d7f4KW94eHl5t+n5+jp6uno6+zt5e3u7/DW8PHy8+f09fb36g/6+/z6/f7/7gwQFwjgwG4ED8p7hzAhvIUMH6KLCBEixIoWJ2LMqHEjx44eP4IMKXIkyZImT6JMqXIly5YuX8KMKXMmzZo2b+LMqXMnz54+fwINKnQo0aJGjyJNqnQp06ZOn0KNKnUq1apWr2LNqnUr165ev4INK3as2LFky5o9i9ZrAgA7"
+############### --- IMAGENS --- ##############
+# Referência para imagens externas em vez de base64
+background_url = "https://i.ibb.co/FqS4MNC/dark-grid.png"
+scanline_url = "https://i.ibb.co/vPRjdXk/scanlines.png"
+noise_url = "https://i.ibb.co/XZ44d4S/noise.png"
 
-# Pequena textura overlay (sutil)
-scan_texture = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4AkEEAMHTvrv+QAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLmUHAAAB8ElEQVR42u3dsW7aUBiG4WPMQIYs3AMbGVizZsvCRMvCGu6BhYyegKlbJlZWNjaWbL2CeSnNUNFSVQL/Ob9fSpaQZT8+ts/BlAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAkdlX4/Q+11mdrrZ+6rtv1fT/0fT+s9f+6rusOh8Nh13Xdttb6rZTyufDjwIQIIxaCQBAIAkEgCASBIBAEgkAQCAJBIAgEgSAQBIJAEAgCQSAIBIEgEASCQLJZ2nWsH2qtt7XW96WUm1LK25/Xtdanh+PoOM7H1yAYxzh2X0op97XWz13X7U5OyBzXsTZ1rI3c1FrfLe31/NMMX8da1Pu4Hf4XQZSz622v4j3kLa7j2haSIpBa6/21LSSLLGNt7dGYm0w2EUjfbmt99+M8W0g6kePunjtbSDaH8Z5yMLaMlMaH8Z5fh0DKRMuYEoQtZCJzLGNKELaQicy1jCnH3QIpEyxjzsuclzJ+lOewjHlWyAOLWNoypgQhkPLEMnbH01b2ZczxP+QiVsgnWsjSljElCFtIgWVMCcIWUmAZU4KwhUxkjmVMCcIWMpE5lzElCFvIROZexhT2sk5Ya1vGlONugUy0jOx/bw9DRCuCQCgcSMa/IkjLEBGIYQgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgMf+AhECX9GXRCYdAAAAAElFTkSuQmCC"
-
-# --- Função para incorporar imagens base64 em CSS ---
-def get_img_as_base64_css(base64_data):
-    return f"url('{base64_data}')"
+# --- Função para incorporar imagens base64 em CSS --- (REMOVIDA, USANDO URLS DIRETAS)
+# def get_img_as_base64_css(base64_data):
+#     return f"url('{base64_data}')"
 
 ########### --- ESTILO V7 - RETRO COCKPIT EDITION --- #############
 st.markdown(f"""
@@ -69,7 +68,7 @@ body, .stApp {{
     background-color: #0a0d12 !important;
     color: #c8e3ff !important;
     font-family: 'Share Tech Mono', 'Fira Code', monospace !important;
-    background-image: {{{get_img_as_base64_css(background_retro)}}}, 
+    background-image: url('{background_url}'), 
                       linear-gradient(135deg, rgba(2,9,22,0.97) 0%, rgba(7,19,37,0.92) 100%);
     background-size: 200px auto, 100% 100%;
     background-position: center;
@@ -88,7 +87,7 @@ body::after {{
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: {{{get_img_as_base64_css(scan_texture)}}};
+    background-image: url('{scanline_url}');
     opacity: 0.03;
     pointer-events: none;
     z-index: 1000;
@@ -108,7 +107,7 @@ p, div, span, li {{
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: url('https://i.ibb.co/XZ44d4S/noise.png');
+    background-image: url('{noise_url}');
     opacity: 0.015;
     pointer-events: none;
     z-index: 999;
