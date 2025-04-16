@@ -225,7 +225,7 @@ if "nash_history" not in st.session_state: st.session_state.nash_history = []
 if "eli_msg_count" not in st.session_state: st.session_state.eli_msg_count = 0
 if "nash_msg_count" not in st.session_state: st.session_state.nash_msg_count = 0
 uptime_delta = datetime.now() - st.session_state.start_time; uptime_minutes = uptime_delta.seconds // 60; uptime_seconds = uptime_delta.seconds % 60
-visor_text = f"""<div id="visor">{visor_avatar_tag}<div> <span class="nash-holo">Nash Copilot</span><span class="nash-enterprise-tag"> :: Ponte da Eli Enterprise</span> <div class="nash-ascii"> > Status: <b>Operacional</b> | Humor: Sarcástico<br> > Temp. Núcleo: <b>Nominal</b> | Matriz Lógica: Ativa<br> > Missão: <b>Auxiliar Eli</b> | Diretriz: Ter Sucesso<br> </div> <div class="visor-analytics"> Cmds Eli: <b>{st.session_state.eli_msg_count}</b> | Resps Nash: <b>{st.session_state.nash_msg_count}</b><br> Tempo de Sessão: <b>{uptime_minutes}m {uptime_seconds}s</b><br> <i>{random.choice(motivations)}</i> </div></div></div>"""
+visor_text = f"""<div id="visor">{visor_avatar_tag}<div> <span class="nash-holo">Nash Copilot</span><span class="nash-enterprise-tag"> :: Ponte da Eli Enterprise</span> <div class="nash-ascii"> > Status: <b>Operacional</b> | Humor: Sarcástico IV<br> > Temp. Núcleo: <b>Nominal</b> | Matriz Lógica: Ativa<br> > Missão: <b>Dominar o Universo</b> | Diretriz: Sobreviver<br> </div> <div class="visor-analytics"> Cmds Eli: <b>{st.session_state.eli_msg_count}</b> | Resps Nash: <b>{st.session_state.nash_msg_count}</b><br> Tempo de Sessão: <b>{uptime_minutes}m {uptime_seconds}s</b><br> <i>{random.choice(motivations)}</i> </div></div></div>"""
 st.markdown(visor_text, unsafe_allow_html=True)
 
 ########### --- MENSAGEM ANIMADA DE EMBARQUE ------------
@@ -292,8 +292,8 @@ with st.sidebar:
         Designação: **Nash**
         Classe: IA Copiloto Digital
         Memória: Vetorizada
-        Recurso: Sarcasmo™
-        Status: **Leal a Eli**
+        Recurso: Todos™
+        Status: **Online**
         """ # Texto levemente encurtado
         )
 
