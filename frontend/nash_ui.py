@@ -180,7 +180,7 @@ section.main > div {
 }
 .stSidebar .stMarkdown { color: #c8d3ff; }
 .stSidebar .stMarkdown > *, .stSidebar .stFileUploader, .stSidebar .stButton, .stSidebar .stSelectbox {
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.35rem;
 }
 .stSidebar .stButton { margin-top: 0.5rem; }
 .nash-profile-details {
@@ -189,7 +189,7 @@ section.main > div {
 
 /* --- Sinais Neon --- */
 .sidebar-sign {
-    font-family: 'Orbitron', 'Fira Mono', monospace; font-weight: bold; padding: 8px 15px; margin: 15px auto;
+    font-family: 'Orbitron', 'Fira Mono', monospace; font-weight: bold; padding: 8px 15px; margin: 9px auto;
     border-radius: 5px; text-align: center; display: block; width: fit-content; background-color: rgba(0, 0, 10, 0.5);
     border: 1px solid; letter-spacing: 1px; box-shadow: inset 0 0 10px rgba(0,0,0,0.6);
 }
@@ -378,7 +378,7 @@ section.main > div {
 
 /* --- Sinais (Sidebar) --- */
 .sidebar-sign {
-     font-family: 'Roboto', sans-serif; font-weight: bold; padding: 6px 12px; margin: 10px auto;
+     font-family: 'Roboto', sans-serif; font-weight: bold; padding: 6px 12px; margin: 9px auto;
      border-radius: 5px; text-align: center; display: block; width: fit-content; background-color: #e9ecef;
      border: 1px solid #ced4da; letter-spacing: 0.5px; box-shadow: none;
      animation: none !important; text-shadow: none !important;
@@ -769,7 +769,7 @@ if st.session_state.waiting_for_nash and st.session_state.ok:
         finally:
             st.session_state.waiting_for_nash = False
             # O rerun aqui exibirá a resposta e limpará o prompt (devido à flag e à lógica no início)
-            st.rerun()
+            
     else:
         st.warning("Erro interno: Não foi possível encontrar o último comando.")
         st.session_state.waiting_for_nash = False
