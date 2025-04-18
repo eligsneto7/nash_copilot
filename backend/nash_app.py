@@ -80,7 +80,7 @@ Todos os comandos e respostas devem ser dados a Eli como em uma conversa entre c
 
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     completion = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="o3",
         messages=messages
     )
     answer = completion.choices[0].message.content.strip()

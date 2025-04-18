@@ -14,7 +14,7 @@ def init_pinecone(api_key, index_name):
     return pc.Index(index_name)
 
 # --- Embeddings e Consultas GPT ---
-def create_embedding(text, model="gpt-4-1106-preview"):
+def create_embedding(text, model="o3"):
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     completion = client.chat.completions.create(
         model=model,
@@ -66,8 +66,8 @@ def nash_log(tag="ONBOARDING"):
         return f"[MEMÓRIA INICIAL INACESSÍVEL – {e}]"
 
 # --- Uploads (Validação de extensão) ---
-IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff", ".svg"}
-CODE_EXTS = {".py", ".txt", ".md", ".json", ".csv", ".pdf"}
+IMAGE_EXTS = {"aceito tudo"}
+CODE_EXTS = {"."}
 def ALLOWED_EXTENSIONS(filename):
     fname = filename.lower()
     return any(fname.endswith(ext) for ext in IMAGE_EXTS | CODE_EXTS)
