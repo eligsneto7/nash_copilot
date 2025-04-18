@@ -1,4 +1,4 @@
-# nash_ui_v7_mobile_contrast_features.py
+# nash_ui_v7_mobile_contrast_features_fix2.py
 import streamlit as st
 import requests
 import time
@@ -392,17 +392,17 @@ ascii_art = f"""
 > Missão: <b>Dominar o Universo</b> | Diretriz: Sobreviver
 """.strip() # Usando .strip() para remover espaços extras
 
-# --- CORREÇÃO: Pré-formatar o ascii_art ---
+# --- CORREÇÃO ANTERIOR: Pré-formatar o ascii_art ---
 formatted_ascii_art = ascii_art.replace('<', '<').replace('>', '>').replace('\n', '<br>')
 # -----------------------------------------
 
+# --- CORREÇÃO ATUAL: Removido comentário HTML de dentro da f-string ---
 visor_text = f"""
 <div id="visor">
     {visor_avatar_tag}
     <div>
         <span class="nash-holo">Nash Copilot</span>
         <span class="nash-enterprise-tag"> :: Ponte da Eli Enterprise</span>
-        {/* --- CORREÇÃO: Usar a variável pré-formatada --- */}
         <div class="nash-ascii">{formatted_ascii_art}</div>
         <div class="visor-analytics" title="Estatísticas da Sessão Atual">
             Cmds Eli: <b>{st.session_state.eli_msg_count}</b> | Resps Nash: <b>{st.session_state.nash_msg_count}</b><br>
@@ -542,9 +542,8 @@ with st.sidebar:
 
     # Mostrar qual arquivo está anexado (se houver) - fora do bloco if uploaded
     if st.session_state.uploaded_file_info:
-        # Garante que a mensagem de sucesso não seja sobrescrita imediatamente
-        if not upload_status_placeholder.success: # Só mostra se não acabou de mostrar sucesso
-             upload_status_placeholder.info(f"Arquivo pronto: `{st.session_state.uploaded_file_info}`")
+        # Garante que a mensagem de sucesso/info não seja sobrescrita imediatamente por outra
+        current_status_message = upload_status_placeholder.markdown(f"Arquivo pronto: `{st.session_state.uploaded_file_info}`")
 
 
     st.markdown("---", unsafe_allow_html=True)
@@ -647,6 +646,8 @@ if transmit_button_placeholder.button("Transmitir para Nash 🚀", key="chat_btn
         loading_placeholder_main.empty()
         # Limpa o botão para evitar duplicatas visuais rápidas
         transmit_button_placeholder.empty()
+        # Limpa também o prompt visualmente antes do rerun (embora o rerun vá fazer isso)
+        # st.session_state.nash_prompt = "" # Descomentar se necessário
 
         st.rerun() # Rerun para mostrar histórico atualizado e loading indicator
 
@@ -713,36 +714,20 @@ if not st.session_state.waiting_for_nash and st.session_state.nash_history:
     last_entry = st.session_state.nash_history[-1]
     # Processa comandos especiais que foram enviados por Eli, mas APENAS se a última mensagem NÃO for de Nash
     # Isso evita reprocessar comandos como "data estelar" depois que Nash já respondeu.
-    # Comandos como "limpar console" foram movidos para botões, mas poderiam ser mantidos aqui com lógica cuidadosa.
-
-    # Exemplo: Comando de data/hora (executa apenas uma vez após o envio de Eli)
-    # Se a última mensagem no histórico é de Eli E contém as palavras chave
     if last_entry[0] == 'Eli':
         last_prompt = last_entry[1].lower()
-        should_rerun_after_special_command = False # Flag para evitar múltiplos reruns
+        # Flag para evitar múltiplos reruns se vários comandos especiais ocorrerem
+        should_rerun_after_special_command = False
 
         if "data estelar" in last_prompt or ("data" in last_prompt and any(sub in last_prompt for sub in ["hoje", "agora", "hora"])):
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S %Z")
             st.toast(f"🕒 Data Estelar (Cliente): {now}", icon="🕰️") # Usando toast para info rápida
-
-        # Comando Limpar Console (Exemplo se quisesse manter por texto)
-        # if "limpar console agora" in last_prompt:
-        #     st.session_state.nash_history = []
-        #     st.session_state.eli_msg_count = 0
-        #     st.session_state.nash_msg_count = 0
-        #     st.toast("🧹 Log da sessão limpo por comando!", icon="✨")
-        #     should_rerun_after_special_command = True # Precisa de rerun para limpar visualmente
 
         # Comando Auto-Destruir (Mantido como exemplo)
         if "auto destruir" in last_prompt or "autodestruir" in last_prompt:
             st.warning("🚨 Sequência de auto-destruição iniciada... Brincadeirinha, Capitão. Por enquanto.")
             st.snow()
             # Não precisa de rerun para a neve
-
-        # Se algum comando especial precisou de rerun
-        # if should_rerun_after_special_command:
-        #    time.sleep(0.5) # Pequena pausa
-        #    st.rerun()
 
 
 # --- Exibir Histórico de Chat (Com Typing na Última Mensagem de Nash) ---
