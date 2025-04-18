@@ -1,4 +1,4 @@
-# nash_ui_v9_contrast_sidebar.py
+# nash_ui_v9_fix_escape.py
 import streamlit as st
 import requests
 import time
@@ -112,7 +112,6 @@ section.main > div {
 
 /* --- File Uploader (Sidebar) --- */
 .stFileUploader {
-    /* Sidebar Refinement: Reduced Padding */
     background: #101225cc !important; border: 1px dashed #0affa050 !important; border-radius: 8px; padding: 12px; margin-top: 5px;
 }
 .stFileUploader label { color: #0affa0b0 !important; font-size: 0.95em; }
@@ -137,16 +136,13 @@ section.main > div {
 .avatar-nash { color:#0affa0; }
 .avatar-eli { color:#ff07e6; }
 
-/* Contrast Refinement: Slightly darker text */
 .message-nash {
-    color: #b0e0e6; /* PowderBlue, less saturated */
-    border-left: 3px solid #0affa070;
+    color: #b0e0e6; border-left: 3px solid #0affa070;
     display: inline-block; padding: 5px 10px; border-radius: 5px; background-color: rgba(255, 255, 255, 0.04);
     margin-top: 0; line-height: 1.5; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 .message-eli {
-    color: #ffc0e8; /* Pink, slightly darker */
-    border-left: 3px solid #ff07e670;
+    color: #ffc0e8; border-left: 3px solid #ff07e670;
     display: inline-block; padding: 5px 10px; border-radius: 5px; background-color: rgba(255, 255, 255, 0.04);
     margin-top: 0; line-height: 1.5; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
@@ -157,30 +153,18 @@ section.main > div {
 
 /* --- Estilos para st.code --- */
 .stCodeBlock {
-    border: 1px solid #0affa050;
-    border-radius: 5px;
-    background-color: rgba(10, 12, 25, 0.8) !important;
-    margin: 10px 0;
+    border: 1px solid #0affa050; border-radius: 5px; background-color: rgba(10, 12, 25, 0.8) !important; margin: 10px 0;
 }
 .stCodeBlock code {
-    color: #e0e8ff;
-    background-color: transparent !important;
-    font-family: 'Fira Mono', monospace;
-    font-size: 0.95em;
-    white-space: pre-wrap !important;
-    word-wrap: break-word !important;
+    color: #e0e8ff; background-color: transparent !important; font-family: 'Fira Mono', monospace;
+    font-size: 0.95em; white-space: pre-wrap !important; word-wrap: break-word !important;
 }
 .stCodeBlock div[data-testid="stCodeToolbar"] > button {
-    background-color: #1f243d !important;
-    border: 1px solid #0affa070 !important;
-    color: #e0e8ff !important;
-    opacity: 0.7;
-    transition: opacity 0.3s ease;
+    background-color: #1f243d !important; border: 1px solid #0affa070 !important; color: #e0e8ff !important;
+    opacity: 0.7; transition: opacity 0.3s ease;
 }
 .stCodeBlock div[data-testid="stCodeToolbar"] > button:hover {
-    opacity: 1;
-    background-color: #2a3050 !important;
-    border-color: #0affa0 !important;
+    opacity: 1; background-color: #2a3050 !important; border-color: #0affa0 !important;
 }
 
 #nash-history hr { margin: 15px 0; border: none; border-top: 1px solid #ffffff15; }
@@ -195,23 +179,16 @@ section.main > div {
 .stSidebar > div:first-child {
     background: linear-gradient(180deg, #101225f0 0%, #181c30f0 100%); border-right: 1px solid #0affa020; backdrop-filter: blur(5px);
 }
-/* Sidebar Refinement: Reduced Header margin */
 .stSidebar .stMarkdown h3 {
     color: #ff07e6; text-shadow: 0 0 8px #ff07e650; margin-top: 10px; margin-bottom: 4px;
 }
 .stSidebar .stMarkdown { color: #c8d3ff; }
-/* Sidebar Refinement: Reduced General margin */
 .stSidebar .stMarkdown > *, .stSidebar .stFileUploader, .stSidebar .stButton, .stSidebar .stSelectbox {
     margin-bottom: 0.8rem;
 }
 .stSidebar .stButton { margin-top: 0.5rem; }
-
-/* Sidebar Refinement: Compact Profile Details */
 .nash-profile-details {
-    font-size: 0.9em;
-    line-height: 1.4;
-    margin-top: -5px;
-    color: #c8d3ff; /* Specific color for cyberpunk */
+    font-size: 0.9em; line-height: 1.4; margin-top: -5px; color: #c8d3ff;
 }
 
 /* --- Sinais Neon --- */
@@ -256,7 +233,7 @@ section.main > div {
 </style>
 """
 
-# Tema Light Mode (Com correções de contraste e sidebar)
+# Tema Light Mode
 LIGHT_MODE_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Roboto:wght@400;700&display=swap');
@@ -282,7 +259,7 @@ section.main > div {
     box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 2rem;
 }
 
-/* --- Visor (Simplificado) --- */
+/* --- Visor --- */
 #visor {
     background: linear-gradient(135deg, #eef2f7 80%, #d6e4f5 140%);
     border-radius: 8px; margin-bottom: 20px; margin-top: 0px; border: 1px solid #c3daef;
@@ -327,7 +304,6 @@ section.main > div {
 
 /* --- File Uploader (Sidebar) --- */
 .stFileUploader {
-    /* Sidebar Refinement: Reduced Padding */
     background: #f8f9fa !important; border: 1px dashed #ced4da !important; border-radius: 5px; padding: 12px; margin-top: 5px;
 }
 .stFileUploader label { color: #0d6efd !important; font-size: 0.95em; }
@@ -350,16 +326,14 @@ section.main > div {
 .avatar-nash { color:#0a58ca; }
 .avatar-eli { color:#d63384; }
 
-/* Contrast Correction: Darker text for messages */
+/* Contrast Correction */
 .message-nash {
-    color: #212529; /* Default dark text */
-    background-color: #f1f3f5;
+    color: #212529; background-color: #f1f3f5;
     display: inline-block; padding: 6px 12px; border-radius: 15px;
     margin-top: 0; line-height: 1.5; text-shadow: none; border-left: none;
 }
 .message-eli {
-    color: #055160; /* Dark cyan/blue */
-    background-color: #e3f2fd;
+    color: #055160; background-color: #e3f2fd;
     display: inline-block; padding: 6px 12px; border-radius: 15px;
     margin-top: 0; line-height: 1.5; text-shadow: none; border-left: none;
 }
@@ -393,25 +367,17 @@ section.main > div {
 .stSidebar > div:first-child {
     background: #ffffff; border-right: 1px solid #dee2e6; backdrop-filter: none;
 }
-/* Sidebar Refinement: Reduced Header margin */
 .stSidebar .stMarkdown h3 {
     color: #0b5ed7; text-shadow: none; margin-top: 10px; margin-bottom: 4px; font-size: 1.1em;
 }
 .stSidebar .stMarkdown { color: #495057; }
-/* Sidebar Refinement: Reduced General margin */
 .stSidebar .stMarkdown > *, .stSidebar .stFileUploader, .stSidebar .stButton, .stSidebar .stSelectbox {
      margin-bottom: 0.8rem;
 }
 .stSidebar .stButton { margin-top: 0.5rem; }
-
-/* Sidebar Refinement: Compact Profile Details */
 .nash-profile-details {
-    font-size: 0.9em;
-    line-height: 1.4;
-    margin-top: -5px;
-    color: #495057; /* Specific color for light mode */
+    font-size: 0.9em; line-height: 1.4; margin-top: -5px; color: #495057;
 }
-
 
 /* --- Sinais (Sidebar) --- */
 .sidebar-sign {
@@ -494,12 +460,15 @@ def clean_markdown(text):
     """Remove formatação básica e escapa aspas para tooltips."""
     text = re.sub(r'[\*_`]', '', text)
     text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
-    text = text.replace('"', '"') # Escapar aspas duplas
+    text = text.replace('"', '"')
     return text
 
 def escape_html(text):
     """Escapa caracteres HTML básicos."""
-    return text.replace('<', '<').replace('>', '>')
+    # Garantir que o input seja string
+    if not isinstance(text, str):
+        text = str(text)
+    return text.replace('&', '&').replace('<', '<').replace('>', '>')
 
 # --- Aplica o Tema Selecionado ---
 selected_theme_css = THEMES.get(st.session_state.selected_theme, CYBERPUNK_CSS)
@@ -507,6 +476,7 @@ st.markdown(selected_theme_css, unsafe_allow_html=True)
 
 # --- Lógica para Limpar o Prompt ---
 if st.session_state.clear_prompt_on_next_run:
+    # O widget text_area será limpo automaticamente no rerun se a key for a mesma
     st.session_state.clear_prompt_on_next_run = False
 
 # --- Status do Backend ---
@@ -530,7 +500,12 @@ ascii_art = f"""
 > Temp. Núcleo: <b>Nominal</b> | Matriz Lógica: Ativa
 > Missão: <b>Dominar o Universo</b> | Diretriz: Sobreviver
 """.strip()
-formatted_ascii_art = escape_html(ascii_art).replace('\n', '<br>') # Escapar HTML e converter newlines
+# Escapar apenas o conteúdo antes de adicionar tags HTML válidas
+safe_ascii_art = escape_html(ascii_art)
+# Re-inserir tags <b> permitidas e <br>
+safe_ascii_art = safe_ascii_art.replace('<b>', '<b>').replace('</b>', '</b>')
+formatted_ascii_art = safe_ascii_art.replace('\n', '<br>')
+
 visor_text = f"""
 <div id="visor">
     {visor_avatar_tag}
@@ -560,10 +535,13 @@ if st.session_state.nash_welcome:
 if not st.session_state.ok:
     st.markdown("### Acesso à Ponte Requerido")
     pw_placeholder = st.empty()
+    # Use a chave para buscar valor do estado, ou string vazia se não existir
+    pw_value = st.session_state.get("login_pw", "")
     pw = pw_placeholder.text_input(
         "Insira o Código de Autorização de Comando:",
         type="password",
-        key="login_pw"
+        key="login_pw", # Manter a chave para state
+        value=pw_value # Preencher com valor do estado se existir
     )
     button_placeholder = st.empty()
     if button_placeholder.button("Autenticar 🛰️", key="login_btn", disabled=st.session_state.waiting_for_nash):
@@ -572,19 +550,24 @@ if not st.session_state.ok:
             st.session_state.waiting_for_nash = False
         else:
             st.session_state.waiting_for_nash = True
+            # Guardar a senha digitada no estado explicitamente antes do rerun
+            st.session_state.login_pw = pw
             button_placeholder.empty()
             st.rerun()
 
     if st.session_state.waiting_for_nash:
         loading_placeholder_login = st.empty()
         loading_placeholder_login.markdown("<div class='loading-indicator'>Autenticando com a Nave Mãe...</div>", unsafe_allow_html=True)
+        login_pw_to_check = st.session_state.get("login_pw", "") # Pega a senha guardada
         try:
-            r = requests.post(f"{BACKEND_URL}/login", json={"password": pw}, timeout=REQUEST_TIMEOUT)
+            r = requests.post(f"{BACKEND_URL}/login", json={"password": login_pw_to_check}, timeout=REQUEST_TIMEOUT)
             if r.status_code == 200 and r.json().get("success"):
                 st.session_state.ok = True
                 st.session_state.waiting_for_nash = False
-                # CORREÇÃO: Não limpar state do widget aqui
-                pw_placeholder.empty()
+                # Limpa o valor da senha *do estado* após sucesso
+                if "login_pw" in st.session_state:
+                    del st.session_state["login_pw"]
+                pw_placeholder.empty() # Limpa o widget
                 loading_placeholder_login.empty()
                 button_placeholder.empty()
                 st.success("Autenticação bem-sucedida. Protocolos Nash desbloqueados.")
@@ -595,6 +578,8 @@ if not st.session_state.ok:
                 st.session_state.waiting_for_nash = False
                 loading_placeholder_login.empty()
                 st.error(f"Falha na autenticação. Acesso negado. (Status: {r.status_code})")
+                # Não limpa a senha do estado aqui para retentativa
+
         except requests.exceptions.RequestException as e:
             st.session_state.waiting_for_nash = False
             loading_placeholder_login.empty()
@@ -602,7 +587,7 @@ if not st.session_state.ok:
         except Exception as e:
             st.session_state.waiting_for_nash = False
             loading_placeholder_login.empty()
-            st.error(f"Ocorreu um erro inesperado: {e}")
+            st.error(f"Ocorreu um erro inesperado na autenticação: {e}")
 
     if not st.session_state.ok:
         st.stop()
@@ -640,7 +625,7 @@ with st.sidebar:
         if st.session_state.uploaded_file_info != uploaded.name:
             files = {"file": (uploaded.name, uploaded.getvalue())}
             try:
-                with st.spinner(f"Transmitindo '{uploaded.name}'..."):
+                with st.spinner(f"Transmitindo '{escape_html(uploaded.name)}'..."): # Escape filename
                     r = requests.post(f"{BACKEND_URL}/upload", files=files, timeout=REQUEST_TIMEOUT)
                 if r.status_code == 200:
                     st.session_state.uploaded_file_info = uploaded.name
@@ -653,14 +638,14 @@ with st.sidebar:
             except Exception as e: st.session_state.uploaded_file_info = None; upload_status_placeholder.error(f"Erro Upload: {e}")
     elif uploaded is None and st.session_state.uploaded_file_info:
          st.session_state.uploaded_file_info = None
-         upload_status_placeholder.info("Nenhum arquivo anexado.")
+         # upload_status_placeholder.info("Nenhum arquivo anexado.") # Opcional
     if st.session_state.uploaded_file_info:
-        upload_status_placeholder.info(f"Pronto: `{escape_html(st.session_state.uploaded_file_info)}`") # Escapar nome do arquivo
+        # Usar info para não ficar sempre verde
+        upload_status_placeholder.info(f"Pronto: `{escape_html(st.session_state.uploaded_file_info)}`")
 
     st.markdown("---", unsafe_allow_html=True)
 
     st.markdown("### ⚙️ Controles")
-    # Usar st.button normal, a classe CSS é injetada pelo tema
     if st.button("🗑️ Limpar Log da Sessão", key="clear_chat_btn", help="Apaga todo o histórico de mensagens desta sessão.", use_container_width=True):
          st.session_state.nash_history = []
          st.session_state.eli_msg_count = 0
@@ -671,7 +656,6 @@ with st.sidebar:
 
     st.markdown("### 🧠 Perfil Núcleo Nash")
     tooltip_recurso = clean_markdown("Nash tem acesso a uma vasta gama de dados e APIs, incluindo busca na web, geração de imagens (DALL-E), análise de dados e mais, dependendo da configuração do backend.")
-    # Sidebar Refinement: Aplicando a classe CSS para compactação
     st.markdown(
         f"""
         <div class="nash-profile-details">
@@ -686,9 +670,14 @@ with st.sidebar:
 
 # --- Área Principal de Chat ---
 st.markdown("### 🎙️ Console de Comando — Nash AI")
+# Use a key para recuperar o valor atual do prompt do estado
+prompt_value = st.session_state.get("nash_prompt", "")
 prompt = st.text_area(
-    "Insira comando ou consulta para Nash:", key="nash_prompt", height=110,
+    "Insira comando ou consulta para Nash:",
+    key="nash_prompt",
+    height=110,
     placeholder="Digite seu comando aqui, Capitão... Anexou um arquivo? Nash o verá.",
+    value=prompt_value # Definir valor inicial do estado
 )
 
 # --- Indicador de Loading ---
@@ -696,9 +685,9 @@ loading_placeholder_main = st.empty()
 if st.session_state.waiting_for_nash:
     loading_placeholder_main.markdown("<div class='loading-indicator'>Nash está processando seu comando...</div>", unsafe_allow_html=True)
 
-# --- Efeito de Typing ---
-def nash_typing(plain_text, target_placeholder, avatar_class, message_class):
-    """Renderiza texto simples com efeito de digitação, escapando HTML."""
+# --- Efeito de Typing (CORRIGIDO) ---
+def nash_typing(plain_text, target_placeholder, message_class):
+    """Renderiza texto simples com efeito de digitação, escapando HTML corretamente."""
     full_render = ""
     lines = plain_text.split('\n')
     try:
@@ -707,39 +696,40 @@ def nash_typing(plain_text, target_placeholder, avatar_class, message_class):
             for char_index, char in enumerate(line):
                 line_output += char
                 cursor = "█"
-                # CORREÇÃO: Usar escape_html em ambas as partes
-                safe_line_output = escape_html(line_output)
-                safe_full_render = escape_html(full_render)
-                current_render = safe_full_render + safe_line_output + cursor
-                avatar_icon = "👨‍🚀" if avatar_class=='avatar-nash' else "🧑‍🚀"
-                # Renderiza no placeholder específico (Nome Nash/Eli removido do span, já está no avatar)
-                target_placeholder.markdown(f"<span class='{message_class}'>{current_render}</span>", unsafe_allow_html=True)
+                # Escapar o texto atualizado a cada passo
+                current_render_escaped = escape_html(full_render + line_output) + cursor
+                # Renderiza dentro do span, usando o texto escapado
+                target_placeholder.markdown(f"<span class='{message_class}'>{current_render_escaped}</span>", unsafe_allow_html=True)
                 delay = 0.005 if char == ' ' else (0.05 if char in ['.', ',', '!', '?'] else 0.018)
                 time.sleep(delay)
 
             full_render += line + "\n"
-            safe_full_render = escape_html(full_render)
-             # Renderiza sem cursor antes de ir para a próxima linha ou finalizar
-            target_placeholder.markdown(f"<span class='{message_class}'>{safe_full_render}</span>", unsafe_allow_html=True)
-            if line_index < len(lines) - 1: time.sleep(0.1)
+            # Renderiza sem cursor após cada linha completa
+            full_render_escaped = escape_html(full_render)
+            target_placeholder.markdown(f"<span class='{message_class}'>{full_render_escaped}</span>", unsafe_allow_html=True)
+            if line_index < len(lines) - 1: time.sleep(0.1) # Pequena pausa entre linhas
 
-        # Render final sem cursor e com HTML escapado
-        safe_msg = escape_html(plain_text)
-        target_placeholder.markdown(f"<span class='{message_class}'>{safe_msg}</span>", unsafe_allow_html=True)
+        # Render final sem cursor
+        final_msg_escaped = escape_html(plain_text)
+        target_placeholder.markdown(f"<span class='{message_class}'>{final_msg_escaped}</span>", unsafe_allow_html=True)
+
     except Exception as e:
+        # Fallback seguro
         safe_msg = escape_html(plain_text)
         target_placeholder.markdown(f"<span class='{message_class}'>[Erro typing] {safe_msg}</span>", unsafe_allow_html=True)
         print(f"Erro durante nash_typing: {e}")
 
 # --- Enviar Mensagem ---
 transmit_button_placeholder = st.empty()
+# Usar o valor atual do widget 'prompt' que já está sincronizado com o estado
 if transmit_button_placeholder.button("Transmitir para Nash 🚀", key="chat_btn", disabled=st.session_state.waiting_for_nash):
-    current_prompt = st.session_state.get("nash_prompt", "")
-    if current_prompt:
-        st.session_state.nash_history.append(("Eli", current_prompt))
+    if prompt: # Checa o valor do widget
+        st.session_state.nash_history.append(("Eli", prompt))
         st.session_state.eli_msg_count += 1
         st.session_state.waiting_for_nash = True
         st.session_state.clear_prompt_on_next_run = True
+        # Limpar o valor do prompt no estado ANTES do rerun para garantir
+        st.session_state.nash_prompt = ""
         loading_placeholder_main.empty()
         transmit_button_placeholder.empty()
         st.rerun()
@@ -761,8 +751,8 @@ if st.session_state.waiting_for_nash and st.session_state.ok:
                 st.session_state.nash_history.append(("Nash", resp))
                 st.session_state.nash_msg_count += 1
             else:
-                # CORREÇÃO: Sintaxe correta para adicionar reticências
-                error_msg = f"[Erro {req.status_code}: {req.text[:100]}...]"
+                error_text_safe = escape_html(req.text[:100]) # Escapar texto do erro
+                error_msg = f"[Erro {req.status_code}: {error_text_safe}...]"
                 st.session_state.nash_history.append(("Nash", error_msg))
                 st.session_state.nash_msg_count += 1
                 st.error(f"Erro ao comunicar com Nash. Status: {req.status_code}.")
@@ -777,7 +767,7 @@ if st.session_state.waiting_for_nash and st.session_state.ok:
         except Exception as e:
             st.session_state.nash_history.append(("Nash", f"[Erro Inesperado no Cliente: {e}]"))
             st.session_state.nash_msg_count += 1
-            st.error(f"Ocorreu um erro inesperado: {e}")
+            st.error(f"Ocorreu um erro inesperado na comunicação: {e}")
         finally:
             st.session_state.waiting_for_nash = False
             st.rerun()
@@ -798,7 +788,7 @@ if not st.session_state.waiting_for_nash and st.session_state.nash_history:
             st.warning("🚨 Sequência de auto-destruição iniciada... Brincadeirinha.")
             st.snow()
 
-# --- Exibir Histórico de Chat ---
+# --- Exibir Histórico de Chat (CORRIGIDO) ---
 if st.session_state.nash_history:
     st.markdown('<div id="nash-history">', unsafe_allow_html=True)
     st.markdown("### ⏳ Log da Sessão")
@@ -811,63 +801,68 @@ if st.session_state.nash_history:
             message_class = "message-nash" if who == "Nash" else "message-eli"
             avatar_icon = "👨‍🚀" if who == "Nash" else "🧑‍🚀"
 
-            # Renderizar avatar e nome
-            st.markdown(f"<span class='{avatar_class}'>{avatar_icon} {who}:</span>", unsafe_allow_html=True)
+            # Usar colunas para alinhar avatar e mensagem
+            col1, col2 = st.columns([1, 15]) # Ajustar proporção conforme necessário
 
-            code_pattern = re.compile(r"```(\w+)?\s*\n(.*?)\n```|```(.*?)```", re.DOTALL | re.MULTILINE)
-            last_end = 0
-            is_last_message = (i == last_message_index)
-            is_typing_message = (who == "Nash" and is_last_message and not st.session_state.waiting_for_nash)
+            with col1:
+                 st.markdown(f"<span class='{avatar_class}'>{avatar_icon}</span>", unsafe_allow_html=True)
+                 st.markdown(f"<span class='{avatar_class}' style='font-size: 0.9em; display: block; margin-top: -5px;'>{who}:</span>", unsafe_allow_html=True)
 
-            # Placeholder para a mensagem inteira (texto + código)
-            message_container = st.container()
-            typing_target = message_container # Por padrão, o typing acontece no container principal
 
-            has_code_blocks = False
-            # Iterar sobre blocos de código
-            for match in code_pattern.finditer(msg):
-                has_code_blocks = True
-                start, end = match.span()
+            with col2:
+                code_pattern = re.compile(r"```(\w+)?\s*\n(.*?)\n```|```(.*?)```", re.DOTALL | re.MULTILINE)
+                last_end = 0
+                is_last_message = (i == last_message_index)
+                is_typing_message = (who == "Nash" and is_last_message and not st.session_state.waiting_for_nash)
 
-                # Texto antes do código
-                plain_text_before = msg[last_end:start].strip()
-                if plain_text_before:
+                # Iterar sobre blocos de código
+                has_code_blocks = False
+                for match in code_pattern.finditer(msg):
+                    has_code_blocks = True
+                    start, end = match.span()
+
+                    # Texto antes do código
+                    plain_text_before = msg[last_end:start].strip()
+                    if plain_text_before:
+                        if is_typing_message:
+                            typing_placeholder = st.empty()
+                            nash_typing(plain_text_before, typing_placeholder, message_class)
+                        else:
+                            # Renderizar estático com a classe correta
+                            st.markdown(f"<span class='{message_class}'>{escape_html(plain_text_before)}</span>", unsafe_allow_html=True)
+
+                    # Bloco de código
+                    lang = match.group(1) or match.group(3)
+                    code = match.group(2) or match.group(4)
+                    if code:
+                        st.code(code, language=lang.lower() if lang else None)
+
+                    last_end = end
+
+                # Texto depois do último bloco de código
+                plain_text_after = msg[last_end:].strip()
+                if plain_text_after:
                     if is_typing_message:
-                        typing_placeholder = message_container.empty()
-                        nash_typing(plain_text_before, typing_placeholder, avatar_class, message_class)
+                         typing_placeholder = st.empty() # Novo placeholder
+                         nash_typing(plain_text_after, typing_placeholder, message_class)
                     else:
-                        message_container.markdown(f"<span class='{message_class}'>{escape_html(plain_text_before)}</span>", unsafe_allow_html=True)
+                         st.markdown(f"<span class='{message_class}'>{escape_html(plain_text_after)}</span>", unsafe_allow_html=True)
 
-                # Bloco de código
-                lang = match.group(1) or match.group(3) # Linguagem pode ser None
-                code = match.group(2) or match.group(4) # Código
-                if code:
-                    message_container.code(code, language=lang.lower() if lang else None)
+                # Se a mensagem inteira não tinha blocos de código
+                if not has_code_blocks:
+                    if is_typing_message:
+                        typing_placeholder = st.empty()
+                        nash_typing(msg, typing_placeholder, message_class)
+                    else:
+                        # Renderiza estático
+                        st.markdown(f"<span class='{message_class}'>{escape_html(msg)}</span>", unsafe_allow_html=True)
 
-                last_end = end
-
-            # Texto depois do último bloco de código
-            plain_text_after = msg[last_end:].strip()
-            if plain_text_after:
-                if is_typing_message:
-                     typing_placeholder = message_container.empty() # Novo placeholder para parte final
-                     nash_typing(plain_text_after, typing_placeholder, avatar_class, message_class)
-                else:
-                     message_container.markdown(f"<span class='{message_class}'>{escape_html(plain_text_after)}</span>", unsafe_allow_html=True)
-
-            # Se a mensagem inteira não tinha blocos de código E era para ser typing
-            if not has_code_blocks and is_typing_message:
-                 typing_placeholder = message_container.empty()
-                 nash_typing(msg, typing_placeholder, avatar_class, message_class)
-            # Se não tinha blocos e não era typing, renderiza tudo
-            elif not has_code_blocks and not is_typing_message:
-                 message_container.markdown(f"<span class='{message_class}'>{escape_html(msg)}</span>", unsafe_allow_html=True)
-
-            # Adiciona divisor
+            # Adiciona divisor fora das colunas, após cada par de mensagens
             if i < last_message_index:
                 st.markdown("<hr>", unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
+
 
 elif not st.session_state.waiting_for_nash:
     st.markdown("> *Console aguardando o primeiro comando...*")
