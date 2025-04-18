@@ -1,10 +1,6 @@
-# nash_ui_v10_fix_prompt_clear.py
 import streamlit as st
-import requests
-import time
+import requests, time, random, re, html   # ← acrescentamos “html”
 from datetime import datetime, timedelta
-import random
-import re # Importado para regex e limpeza
 
 # --- Constantes ---
 BACKEND_URL = "https://nashcopilot-production.up.railway.app"
@@ -470,11 +466,12 @@ def clean_markdown(text):
     text = text.replace('"', '"')
     return text
 
-def escape_html(text):
-    """Escapa caracteres HTML básicos."""
+def escape_html(text: str) -> str:
+    """Escapa caracteres HTML antes de injetar no Streamlit."""
     if not isinstance(text, str):
         text = str(text)
-    return text.replace('&', '&').replace('<', '<').replace('>', '>')
+    # biblioteca padrão já faz o job direito 🙂
+    return html.escape(text, quote=False)
 
 # --- Aplica o Tema Selecionado ---
 selected_theme_css = THEMES.get(st.session_state.selected_theme, CYBERPUNK_CSS)
@@ -744,15 +741,19 @@ if st.session_state.waiting_for_nash and st.session_state.ok:
         try:
             req = requests.post(f"{BACKEND_URL}/chat", json={"prompt": last_eli_prompt,"session_id": "eli"}, timeout=REQUEST_TIMEOUT)
             if req.status_code == 200:
-                resp = req.json().get("response", "Nash parece estar sem palavras...")
+                resp = req.json().get("response", "Nash parece estar sem palavras…")
                 st.session_state.nash_history.append(("Nash", resp))
                 st.session_state.nash_msg_count += 1
             else:
-                error_text_safe = escape_html(req.text[:100])
-                error_msg = f"[Erro {req.status_code}: {error_text_safe}...]"
+                # mensagem limpa → não quebra a UI
+                try:
+                    payload = req.json().get("error")
+                except ValueError:
+                    payload = req.text
+                error_msg = f"[Erro {req.status_code}: {escape_html(str(payload)[:100])}]"
                 st.session_state.nash_history.append(("Nash", error_msg))
                 st.session_state.nash_msg_count += 1
-                st.error(f"Erro ao comunicar com Nash. Status: {req.status_code}.")
+                st.error(f"Erro ao comunicar com Nash — código {req.status_code}.")
         except requests.exceptions.Timeout:
             st.session_state.nash_history.append(("Nash", "[Erro: Timeout na resposta de Nash]"))
             st.session_state.nash_msg_count += 1

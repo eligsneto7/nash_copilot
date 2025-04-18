@@ -14,7 +14,7 @@ def init_pinecone(api_key, index_name):
     return pc.Index(index_name)
 
 # --- Embeddings e Consultas GPT ---
-def create_embedding(text, model="o3"):
+def create_embedding(text, model="gpt-4o"):
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     completion = client.chat.completions.create(
         model=model,
@@ -31,7 +31,7 @@ def create_embedding(text, model="o3"):
     )
     return completion.choices[0].message.content.strip()
 
-def get_text_embedding(text, model="text-embedding-ada-002"):
+def get_text_embedding(text, model="text-embedding-3-small"):
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     response = client.embeddings.create(input=[text], model=model)
     return response.data[0].embedding
