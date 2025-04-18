@@ -750,7 +750,7 @@ if st.session_state.waiting_for_nash and st.session_state.ok:
                 st.session_state.nash_history.append(("Nash", resp))
                 st.session_state.nash_msg_count += 1
             else:
-                error_msg = f"[Erro {req.status_code}: {req.text[:100]...}]"
+                error_msg = f"[Erro {req.status_code}: {req.text[:100]}...]"
                 st.session_state.nash_history.append(("Nash", error_msg))
                 st.session_state.nash_msg_count += 1
                 st.error(f"Erro ao comunicar com Nash. Status: {req.status_code}.")
