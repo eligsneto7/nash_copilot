@@ -1,4 +1,4 @@
-# nash_ui_v9_fix_login_state.py
+# nash_ui_v10_fix_prompt_clear.py
 import streamlit as st
 import requests
 import time
@@ -132,6 +132,7 @@ section.main > div {
 /* --- Avatares e Mensagens no Chat --- */
 .avatar-nash, .avatar-eli {
     font-weight:bold; filter: drop-shadow(0 0 6px); display: block; margin-bottom: 4px;
+    font-size: 0.9em; /* Ajuste para nome não ficar tão grande */
 }
 .avatar-nash { color:#0affa0; }
 .avatar-eli { color:#ff07e6; }
@@ -228,6 +229,8 @@ section.main > div {
     .message-nash, .message-eli { padding: 4px 8px; }
     .stCodeBlock code { font-size: 0.9em; }
     #backend-status { font-size: 0.8em; padding: 3px 7px; top: 5px; right: 10px; }
+    .st-emotion-cache-1y4p8pa { gap: 0.5rem !important; } /* Reduz gap nas colunas do chat em mobile */
+    .avatar-nash, .avatar-eli { font-size: 0.8em; } /* Nomes menores no chat mobile */
 }
 </style>
 """
@@ -321,6 +324,7 @@ section.main > div {
 /* --- Avatares e Mensagens no Chat --- */
 .avatar-nash, .avatar-eli {
     font-weight:bold; filter: none; display: block; margin-bottom: 4px;
+    font-size: 0.9em; /* Ajuste para nome não ficar tão grande */
 }
 .avatar-nash { color:#0a58ca; }
 .avatar-eli { color:#d63384; }
@@ -408,6 +412,8 @@ section.main > div {
     .message-nash, .message-eli { padding: 5px 10px; }
     .stCodeBlock code { font-size: 0.85em; }
     #backend-status { font-size: 0.8em; padding: 3px 7px; top: 5px; right: 10px; }
+    .st-emotion-cache-1y4p8pa { gap: 0.5rem !important; } /* Reduz gap nas colunas do chat em mobile */
+    .avatar-nash, .avatar-eli { font-size: 0.8em; } /* Nomes menores no chat mobile */
 }
 </style>
 """
@@ -432,6 +438,10 @@ default_session_state = {
     "uploaded_file_info": None,
     "selected_theme": "Cyberpunk"
 }
+# Adicionar chaves que faltam com valores padrão
+if "nash_prompt" not in st.session_state: st.session_state.nash_prompt = ""
+if "login_pw_input_value" not in st.session_state: st.session_state.login_pw_input_value = ""
+
 for key, default_value in default_session_state.items():
     if key not in st.session_state:
         st.session_state[key] = default_value
@@ -470,10 +480,10 @@ def escape_html(text):
 selected_theme_css = THEMES.get(st.session_state.selected_theme, CYBERPUNK_CSS)
 st.markdown(selected_theme_css, unsafe_allow_html=True)
 
-# --- Lógica para Limpar o Prompt ---
-if st.session_state.clear_prompt_on_next_run:
-    st.session_state.clear_prompt_on_next_run = False
-    # A limpeza ocorrerá no rerun se a key for mantida no text_area
+# --- Lógica para Limpar o Prompt (Executada no início do script) ---
+if st.session_state.get("clear_prompt_on_next_run", False):
+    st.session_state.nash_prompt = "" # Limpa o valor do estado
+    st.session_state.clear_prompt_on_next_run = False # Reseta a flag
 
 # --- Status do Backend ---
 current_backend_status = check_backend_status()
@@ -524,48 +534,43 @@ if st.session_state.nash_welcome:
     welcome_placeholder.empty()
     st.session_state.nash_welcome = False
 
-# --- Login de Segurança (CORRIGIDO) ---
+# --- Login de Segurança ---
 if not st.session_state.ok:
     st.markdown("### Acesso à Ponte Requerido")
     pw_placeholder = st.empty()
-    # Recupera o valor do estado se existir, senão string vazia
     pw_value = st.session_state.get("login_pw_input_value", "")
     pw = pw_placeholder.text_input(
         "Insira o Código de Autorização de Comando:",
         type="password",
-        key="login_pw_widget", # Usar chave diferente para o widget
-        value=pw_value # Preencher com valor guardado
+        key="login_pw_widget",
+        value=pw_value,
+        on_change=lambda: st.session_state.update(login_pw_input_value=st.session_state.login_pw_widget) # Atualiza state na mudança
     )
-    # Atualizar o valor guardado sempre que o input mudar
-    st.session_state.login_pw_input_value = pw
 
     button_placeholder = st.empty()
     if button_placeholder.button("Autenticar 🛰️", key="login_btn", disabled=st.session_state.waiting_for_nash):
-        # Usa o valor atual do widget (pw) para a verificação
-        if not pw:
+        current_input_pw = st.session_state.login_pw_input_value # Usa o valor do estado
+        if not current_input_pw:
             st.warning("O código de autorização não pode estar vazio.")
             st.session_state.waiting_for_nash = False
         else:
             st.session_state.waiting_for_nash = True
-            # Guarda a senha a ser verificada em uma chave *diferente* da do widget
-            st.session_state.login_pw_to_verify = pw
+            st.session_state.login_pw_to_verify = current_input_pw
             button_placeholder.empty()
-            st.rerun() # Rerun para entrar no fluxo de verificação
+            st.rerun()
 
     if st.session_state.waiting_for_nash:
         loading_placeholder_login = st.empty()
         loading_placeholder_login.markdown("<div class='loading-indicator'>Autenticando com a Nave Mãe...</div>", unsafe_allow_html=True)
-        # Usa a senha guardada na chave separada para verificação
         login_pw_to_check = st.session_state.get("login_pw_to_verify", "")
         try:
             r = requests.post(f"{BACKEND_URL}/login", json={"password": login_pw_to_check}, timeout=REQUEST_TIMEOUT)
             if r.status_code == 200 and r.json().get("success"):
                 st.session_state.ok = True
                 st.session_state.waiting_for_nash = False
-                # Limpar as chaves relacionadas ao login do estado
                 if "login_pw_input_value" in st.session_state: del st.session_state.login_pw_input_value
                 if "login_pw_to_verify" in st.session_state: del st.session_state.login_pw_to_verify
-                pw_placeholder.empty() # Limpa o widget
+                pw_placeholder.empty()
                 loading_placeholder_login.empty()
                 button_placeholder.empty()
                 st.success("Autenticação bem-sucedida. Protocolos Nash desbloqueados.")
@@ -574,7 +579,6 @@ if not st.session_state.ok:
                 st.rerun()
             else:
                 st.session_state.waiting_for_nash = False
-                # Não limpar login_pw_input_value para retentativa
                 if "login_pw_to_verify" in st.session_state: del st.session_state.login_pw_to_verify
                 loading_placeholder_login.empty()
                 st.error(f"Falha na autenticação. Acesso negado. (Status: {r.status_code})")
@@ -669,14 +673,14 @@ with st.sidebar:
 
 # --- Área Principal de Chat ---
 st.markdown("### 🎙️ Console de Comando — Nash AI")
-# Usar a key para recuperar o valor atual do prompt do estado
+# Recupera valor do estado, que foi limpo no início do script se a flag estava ativa
 prompt_value = st.session_state.get("nash_prompt", "")
 prompt = st.text_area(
     "Insira comando ou consulta para Nash:",
-    key="nash_prompt", # Manter key consistente para o widget
+    key="nash_prompt", # Chave consistente para o widget
     height=110,
     placeholder="Digite seu comando aqui, Capitão...",
-    value=prompt_value # Controla o valor exibido
+    value=prompt_value # O valor vem do estado (que pode ter sido limpo)
 )
 
 # --- Indicador de Loading ---
@@ -713,20 +717,19 @@ def nash_typing(plain_text, target_placeholder, message_class):
         target_placeholder.markdown(f"<span class='{message_class}'>[Erro typing] {safe_msg}</span>", unsafe_allow_html=True)
         print(f"Erro durante nash_typing: {e}")
 
-# --- Enviar Mensagem ---
+# --- Enviar Mensagem (CORRIGIDO) ---
 transmit_button_placeholder = st.empty()
-# Usa o valor do widget 'prompt' diretamente
+# Usa o valor atual do widget 'prompt'
 if transmit_button_placeholder.button("Transmitir para Nash 🚀", key="chat_btn", disabled=st.session_state.waiting_for_nash):
     if prompt:
         st.session_state.nash_history.append(("Eli", prompt))
         st.session_state.eli_msg_count += 1
         st.session_state.waiting_for_nash = True
-        st.session_state.clear_prompt_on_next_run = True
-        # Limpa o valor do prompt no estado ANTES do rerun
-        st.session_state.nash_prompt = ""
+        st.session_state.clear_prompt_on_next_run = True # Sinaliza para limpar NO PRÓXIMO rerun
+        # NÃO limpar st.session_state.nash_prompt = "" aqui
         loading_placeholder_main.empty()
         transmit_button_placeholder.empty()
-        st.rerun()
+        st.rerun() # Rerun inicia novo ciclo onde a flag será lida
     else:
         st.warning("Não posso transmitir um comando vazio, Eli.")
         st.session_state.waiting_for_nash = False
@@ -764,6 +767,7 @@ if st.session_state.waiting_for_nash and st.session_state.ok:
             st.error(f"Ocorreu um erro inesperado na comunicação: {e}")
         finally:
             st.session_state.waiting_for_nash = False
+            # O rerun aqui exibirá a resposta e limpará o prompt (devido à flag e à lógica no início)
             st.rerun()
     else:
         st.warning("Erro interno: Não foi possível encontrar o último comando.")
@@ -821,7 +825,8 @@ if st.session_state.nash_history:
                     lang = match.group(1) or match.group(3)
                     code = match.group(2) or match.group(4)
                     if code:
-                        st.code(code, language=lang.lower() if lang else None)
+                        # Garantir que code seja string antes de passar para st.code
+                        st.code(str(code), language=lang.lower() if lang else None)
                     last_end = end
                 plain_text_after = msg[last_end:].strip()
                 if plain_text_after:
