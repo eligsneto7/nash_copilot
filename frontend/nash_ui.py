@@ -20,6 +20,11 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;700&family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
 
+/* --- Reset básico para garantir que os estilos funcionem --- */
+* {
+    box-sizing: border-box;
+}
+
 /* --- ANIMAÇÕES --- */
 @keyframes scan {
   0%, 100% { background-position: 0% 0%; }
@@ -62,10 +67,10 @@ body, .stApp {
     background-color: #0a0d12 !important;
     color: #c8e3ff !important;
     font-family: 'Share Tech Mono', 'Fira Code', monospace !important;
-    background: linear-gradient(135deg, rgba(2,9,22,0.97) 0%, rgba(7,19,37,0.92) 100%);
-    margin: 0;
-    overflow-x: hidden;
-    position: relative;
+    background: linear-gradient(135deg, rgba(2,9,22,0.97) 0%, rgba(7,19,37,0.92) 100%) !important;
+    margin: 0 !important;
+    overflow-x: hidden !important;
+    position: relative !important;
 }
 
 /* Efeito de scan-lines em toda a tela usando gradiente repetido */
@@ -125,6 +130,15 @@ body::after {
 }
 
 /* CONTAINER PRINCIPAL */
+.stApp > header {
+    background: transparent !important;
+}
+
+section.main div[data-testid="stDecoration"],
+section.main div[data-testid="stToolbar"] {
+    display: none !important;
+}
+
 section.main > div {
     max-width: 1200px !important;
     background: linear-gradient(170deg, rgba(12,18,30,0.95) 0%, rgba(20,30,45,0.9) 100%) !important;
@@ -134,8 +148,8 @@ section.main > div {
                 inset 0 0 20px rgba(0,0,0,0.4) !important;
     padding: 1.5rem !important;
     margin: 0 auto !important;
-    position: relative;
-    z-index: 10;
+    position: relative !important;
+    z-index: 10 !important;
 }
 
 /* VISOR REDESENHADO - Mais destaque e altura reduzida em mobile */
@@ -694,113 +708,147 @@ if "start_time" not in st.session_state: st.session_state.start_time = datetime.
 if "nash_history" not in st.session_state: st.session_state.nash_history = []
 if "eli_msg_count" not in st.session_state: st.session_state.eli_msg_count = 0
 if "nash_msg_count" not in st.session_state: st.session_state.nash_msg_count = 0
-uptime_delta = datetime.now() - st.session_state.start_time
-uptime_minutes = uptime_delta.seconds // 60
-uptime_seconds = uptime_delta.seconds % 60
-visor_text = f"""<div id="visor">{visor_avatar_tag}<div> <span class="nash-holo">Nash Copilot</span><span class="nash-enterprise-tag"> :: Ponte da Eli Enterprise</span> <div class="nash-ascii"> > Status: <b>Operacional</b> | Humor: Sarcástico IV<br> > Temp. Núcleo: <b>Nominal</b> | Matriz Lógica: Ativa<br> > Missão: <b>Dominar o Universo</b> | Diretriz: Sobreviver<br> </div> <div class="visor-analytics"> Cmds Eli: <b>{st.session_state.eli_msg_count}</b> | Resps Nash: <b>{st.session_state.nash_msg_count}</b><br> Tempo de Sessão: <b>{uptime_minutes}m {uptime_seconds}s</b><br> <i>{random.choice(motivations)}</i> </div></div></div>"""
-st.markdown(visor_text, unsafe_allow_html=True)
+
+try:
+    uptime_delta = datetime.now() - st.session_state.start_time
+    uptime_minutes = uptime_delta.seconds // 60
+    uptime_seconds = uptime_delta.seconds % 60
+    visor_text = f"""<div id="visor">{visor_avatar_tag}<div> <span class="nash-holo">Nash Copilot</span><span class="nash-enterprise-tag"> :: Ponte da Eli Enterprise</span> <div class="nash-ascii"> > Status: <b>Operacional</b> | Humor: Sarcástico IV<br> > Temp. Núcleo: <b>Nominal</b> | Matriz Lógica: Ativa<br> > Missão: <b>Dominar o Universo</b> | Diretriz: Sobreviver<br> </div> <div class="visor-analytics"> Cmds Eli: <b>{st.session_state.eli_msg_count}</b> | Resps Nash: <b>{st.session_state.nash_msg_count}</b><br> Tempo de Sessão: <b>{uptime_minutes}m {uptime_seconds}s</b><br> <i>{random.choice(motivations)}</i> </div></div></div>"""
+    st.markdown(visor_text, unsafe_allow_html=True)
+except Exception as e:
+    st.error(f"Erro ao renderizar o visor: {str(e)}")
+    # Fallback simples
+    st.markdown("### Nash Copilot")
+    st.markdown("Ponte da Eli Enterprise")
 
 ########### --- MENSAGEM ANIMADA DE EMBARQUE ------------
 if "nash_welcome" not in st.session_state: st.session_state.nash_welcome = True
 if st.session_state.nash_welcome:
-    st.markdown("> *Sistemas Nash online. Sarcasmo calibrado. Bem-vindo de volta ao cockpit, Eli.* 🚀")
-    time.sleep(1.1); st.session_state.nash_welcome = False; st.rerun()
+    try:
+        st.markdown("> *Sistemas Nash online. Sarcasmo calibrado. Bem-vindo de volta ao cockpit, Eli.* 🚀")
+        time.sleep(1.1); st.session_state.nash_welcome = False; st.rerun()
+    except Exception as e:
+        st.warning("Inicializando sistemas...")
+        st.session_state.nash_welcome = False
 
 ########### --- LOGIN DE SEGURANÇA ------------------------
 if "ok" not in st.session_state: st.session_state.ok = False
+
+# Para depuração: permitir ignorar a tela de login durante o desenvolvimento
+debug_mode = False  # Mude para True para pular login durante desenvolvimento
+if debug_mode:
+    st.session_state.ok = True
+
 if not st.session_state.ok:
-    st.markdown("### Acesso à Ponte Requerido")
-    pw = st.text_input("Insira o Código de Autorização de Comando:", type="password", key="login_pw")
-    if st.button("Autenticar", key="login_btn"):
-        if not pw: st.warning("O código de autorização não pode estar vazio.")
-        else:
-            try:
-                r = requests.post(f"{backend_url}/login", json={"password": pw}, timeout=10)
-                if r.status_code == 200 and r.json().get("success"):
-                    st.session_state.ok = True; st.balloons(); st.success("Autenticação bem-sucedida. Protocolos Nash desbloqueados.")
-                    time.sleep(1.5); st.rerun()
-                else: st.error(f"Falha na autenticação. Acesso negado pelo computador da nave. (Status: {r.status_code})")
-            except requests.exceptions.RequestException as e: st.error(f"Erro de rede durante a autenticação: {e}")
-            except Exception as e: st.error(f"Ocorreu um erro inesperado: {e}")
-    st.stop()
+    try:
+        st.markdown("### Acesso à Ponte Requerido")
+        pw = st.text_input("Insira o Código de Autorização de Comando:", type="password", key="login_pw")
+        if st.button("Autenticar", key="login_btn"):
+            if not pw: st.warning("O código de autorização não pode estar vazio.")
+            else:
+                try:
+                    r = requests.post(f"{backend_url}/login", json={"password": pw}, timeout=10)
+                    if r.status_code == 200 and r.json().get("success"):
+                        st.session_state.ok = True; st.balloons(); st.success("Autenticação bem-sucedida. Protocolos Nash desbloqueados.")
+                        time.sleep(1.5); st.rerun()
+                    else: st.error(f"Falha na autenticação. Acesso negado pelo computador da nave. (Status: {r.status_code})")
+                except requests.exceptions.RequestException as e: st.error(f"Erro de rede durante a autenticação: {e}")
+                except Exception as e: st.error(f"Ocorreu um erro inesperado: {e}")
+        st.stop()
+    except Exception as e:
+        st.error(f"Erro na tela de login: {str(e)}")
+        # Em caso de erro, permitir acesso para evitar travamento
+        st.session_state.ok = True
 
 ########### --- SIDEBAR REORGANIZADA --- ###########
-with st.sidebar:
-    # 1. Sinais do Cockpit
-    st.markdown("### ✨ Sinais do Cockpit")
-    st.markdown(f"""<div class="sidebar-sign sign-panic">{sign_panic_text}</div>""", unsafe_allow_html=True)
-    st.markdown(f"""<div class="sidebar-sign sign-42">{sign_42_text}</div>""", unsafe_allow_html=True)
+try:
+    with st.sidebar:
+        # 1. Sinais do Cockpit
+        st.markdown("### ✨ Sinais do Cockpit")
+        st.markdown(f"""<div class="sidebar-sign sign-panic">{sign_panic_text}</div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="sidebar-sign sign-42">{sign_42_text}</div>""", unsafe_allow_html=True)
 
-    st.markdown("---") # Divisor
+        st.markdown("---") # Divisor
 
-    # 2. Comandos Rápidos (NOVA SEÇÃO)
-    st.markdown("### 🚀 Comandos Rápidos")
-    cols = st.columns(2)
-    with cols[0]:
-        if st.button("🔄 Reiniciar", help="Limpa o histórico de conversas"):
-            st.session_state.nash_history = []
-            st.rerun()
-    with cols[1]:
-        if st.button("⏰ Data", help="Mostra a data estelar atual"):
-            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            st.info(f"🕒 Data Estelar: {now}")
+        # 2. Comandos Rápidos (NOVA SEÇÃO)
+        st.markdown("### 🚀 Comandos Rápidos")
+        cols = st.columns(2)
+        with cols[0]:
+            if st.button("🔄 Reiniciar", help="Limpa o histórico de conversas"):
+                st.session_state.nash_history = []
+                st.rerun()
+        with cols[1]:
+            if st.button("⏰ Data", help="Mostra a data estelar atual"):
+                now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                st.info(f"🕒 Data Estelar: {now}")
 
-    # 3. Uplink de Dados
-    st.markdown("### 📡 Uplink de Dados")
-    uploaded = st.file_uploader(
-        "📎 Anexar Arquivo",
-        type=[
-            "jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "svg",
-            "py", "txt", "md", "json", "csv", "pdf", "log", "sh", "yaml", "toml"
-        ],
-        key="file_uploader",
-        label_visibility="visible"
-    )
-    if uploaded is not None:
-        files = {"file": (uploaded.name, uploaded.getvalue())}
-        try:
-            r = requests.post(f"{backend_url}/upload", files=files, timeout=15)
-            if r.status_code == 200: st.success(f"Arquivo '{uploaded.name}' transmitido!")
-            else: st.error(f"Erro na transmissão ({r.status_code}).")
-        except requests.exceptions.RequestException as e: st.error(f"Erro de rede: {e}")
-        except Exception as e: st.error(f"Erro inesperado no upload: {e}")
-
-    st.markdown("---") # Divisor
-
-    # 4. Perfil Nash
-    st.markdown("### 🧠 Perfil Núcleo Nash")
-    st.markdown(
-        """
-        Designação: **Nash**  
-        Classe: IA Copiloto Digital  
-        Memória: Vetorizada  
-        Recurso: Todos™  
-        Status: **Online**
-        """
+        # 3. Uplink de Dados
+        st.markdown("### 📡 Uplink de Dados")
+        uploaded = st.file_uploader(
+            "📎 Anexar Arquivo",
+            type=[
+                "jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "svg",
+                "py", "txt", "md", "json", "csv", "pdf", "log", "sh", "yaml", "toml"
+            ],
+            key="file_uploader",
+            label_visibility="visible"
         )
-    
-    # 5. Configurações da Interface (NOVA SEÇÃO)
-    st.markdown("### ⚙️ Configurações")
-    theme = st.selectbox(
-        "Tema da Interface",
-        ["Retro Cockpit", "Futuro Minimalista", "Blade Runner"],
-        index=0,
-        help="Altera o tema visual da interface (em desenvolvimento)"
-    )
-    
-    # 6. Sobre o Sistema (NOVA SEÇÃO)
-    st.markdown("### ℹ️ Sobre")
-    st.markdown(
-        """
-        **Nash Copilot v7.0**  
-        *"Seu navegador no cosmos digital"*  
-        © 2025 Eli Enterprise
-        """
-    )
+        if uploaded is not None:
+            files = {"file": (uploaded.name, uploaded.getvalue())}
+            try:
+                r = requests.post(f"{backend_url}/upload", files=files, timeout=15)
+                if r.status_code == 200: st.success(f"Arquivo '{uploaded.name}' transmitido!")
+                else: st.error(f"Erro na transmissão ({r.status_code}).")
+            except requests.exceptions.RequestException as e: st.error(f"Erro de rede: {e}")
+            except Exception as e: st.error(f"Erro inesperado no upload: {e}")
+
+        st.markdown("---") # Divisor
+
+        # 4. Perfil Nash
+        st.markdown("### 🧠 Perfil Núcleo Nash")
+        st.markdown(
+            """
+            Designação: **Nash**  
+            Classe: IA Copiloto Digital  
+            Memória: Vetorizada  
+            Recurso: Todos™  
+            Status: **Online**
+            """
+            )
+        
+        # 5. Configurações da Interface (NOVA SEÇÃO)
+        st.markdown("### ⚙️ Configurações")
+        theme = st.selectbox(
+            "Tema da Interface",
+            ["Retro Cockpit", "Futuro Minimalista", "Blade Runner"],
+            index=0,
+            help="Altera o tema visual da interface (em desenvolvimento)"
+        )
+        
+        # 6. Sobre o Sistema (NOVA SEÇÃO)
+        st.markdown("### ℹ️ Sobre")
+        st.markdown(
+            """
+            **Nash Copilot v7.0**  
+            *"Seu navegador no cosmos digital"*  
+            © 2025 Eli Enterprise
+            """
+        )
+except Exception as e:
+    st.sidebar.error(f"Erro ao carregar a sidebar: {str(e)}")
+    # Fallback da sidebar
+    st.sidebar.markdown("### Nash Copilot")
+    st.sidebar.markdown("Sistemas em reinicialização...")
 
 ########### --- ÁREA PRINCIPAL DE CHAT ---------------------
-st.markdown("### 🎙️ Console de Comando — Nash AI")
-prompt = st.text_area("Insira comando ou consulta para Nash:", key="nash_prompt", height=100, placeholder="Digite 'engage!' para uma surpresa ou insira seu comando...")
+try:
+    st.markdown("### 🎙️ Console de Comando — Nash AI")
+    prompt = st.text_area("Insira comando ou consulta para Nash:", key="nash_prompt", height=100, placeholder="Digite 'engage!' para uma surpresa ou insira seu comando...")
+except Exception as e:
+    st.error(f"Erro ao renderizar área de entrada: {str(e)}")
+    # Fallback simples
+    st.markdown("### Console de Comando")
+    prompt = st.text_input("Comando:", key="nash_prompt_fallback")
 
 ############ --- EFEITO DE TYPING NAS RESPOSTAS -----------
 def nash_typing(msg, delay=0.018):
