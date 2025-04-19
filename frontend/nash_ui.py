@@ -1,5 +1,7 @@
+# --- START OF FILE nash_ui.py ---
+
 import streamlit as st
-import requests, time, random, re, html   # ← acrescentamos “html”
+import requests, time, random, re, html
 from datetime import datetime, timedelta
 
 # --- Constantes ---
@@ -136,11 +138,15 @@ section.main > div {
     color: #b0e0e6; border-left: 3px solid #0affa070;
     display: inline-block; padding: 5px 10px; border-radius: 5px; background-color: rgba(255, 255, 255, 0.04);
     margin-top: 0; line-height: 1.5; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    white-space: pre-wrap; /* Garante quebras de linha */
+    word-wrap: break-word; /* Garante quebras de palavras longas */
 }
 .message-eli {
     color: #ffc0e8; border-left: 3px solid #ff07e670;
     display: inline-block; padding: 5px 10px; border-radius: 5px; background-color: rgba(255, 255, 255, 0.04);
     margin-top: 0; line-height: 1.5; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    white-space: pre-wrap; /* Garante quebras de linha */
+    word-wrap: break-word; /* Garante quebras de palavras longas */
 }
 .message-nash a, .message-eli a {
     color: #87cefa; text-decoration: underline; text-decoration-style: dashed; text-underline-offset: 3px;
@@ -328,11 +334,15 @@ section.main > div {
     color: #212529; background-color: #f1f3f5;
     display: inline-block; padding: 6px 12px; border-radius: 15px;
     margin-top: 0; line-height: 1.5; text-shadow: none; border-left: none;
+    white-space: pre-wrap; /* Garante quebras de linha */
+    word-wrap: break-word; /* Garante quebras de palavras longas */
 }
 .message-eli {
     color: #055160; background-color: #e3f2fd;
     display: inline-block; padding: 6px 12px; border-radius: 15px;
     margin-top: 0; line-height: 1.5; text-shadow: none; border-left: none;
+    white-space: pre-wrap; /* Garante quebras de linha */
+    word-wrap: break-word; /* Garante quebras de palavras longas */
 }
 .message-nash a, .message-eli a { color: #0d6efd; text-decoration: underline; text-decoration-style: solid; }
 .message-nash a:hover, .message-eli a:hover { color: #0a58ca; }
@@ -450,7 +460,7 @@ def check_backend_status(force_check=False):
     if not force_check and (now - st.session_state.last_backend_check) < timedelta(seconds=60):
         return st.session_state.backend_status
     try:
-        r = requests.get(f"{BACKEND_URL}/uploads", timeout=REQUEST_TIMEOUT[0])
+        r = requests.get(f"{BACKEND_URL}/uploads", timeout=REQUEST_TIMEOUT[0]) # Assuming /uploads is a valid health check endpoint
         status = "ONLINE ⚡" if r.status_code == 200 else f"AVISO {r.status_code}"
     except requests.exceptions.Timeout: status = "TIMEOUT ⏳"
     except requests.exceptions.ConnectionError: status = "OFFLINE 👾"
@@ -463,15 +473,14 @@ def clean_markdown(text):
     """Remove formatação básica e escapa aspas para tooltips."""
     text = re.sub(r'[\*_`]', '', text)
     text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
-    text = text.replace('"', '"')
+    text = text.replace('"', '"') # Use " for tooltips
     return text
 
 def escape_html(text: str) -> str:
     """Escapa caracteres HTML antes de injetar no Streamlit."""
     if not isinstance(text, str):
         text = str(text)
-    # biblioteca padrão já faz o job direito 🙂
-    return html.escape(text, quote=False)
+    return html.escape(text, quote=False) # quote=False is generally safer for markdown display
 
 # --- Aplica o Tema Selecionado ---
 selected_theme_css = THEMES.get(st.session_state.selected_theme, CYBERPUNK_CSS)
@@ -504,6 +513,7 @@ ascii_art = f"""
 > Missão: <b>Dominar o Universo</b> | Diretriz: Sobreviver
 """.strip()
 safe_ascii_art = escape_html(ascii_art)
+# Re-apply <b> tags after escaping other HTML
 safe_ascii_art = safe_ascii_art.replace('<b>', '<b>').replace('</b>', '</b>')
 formatted_ascii_art = safe_ascii_art.replace('\n', '<br>')
 visor_text = f"""
@@ -535,62 +545,65 @@ if st.session_state.nash_welcome:
 if not st.session_state.ok:
     st.markdown("### Acesso à Ponte Requerido")
     pw_placeholder = st.empty()
+    # Use session state to preserve input value across reruns during login attempt
     pw_value = st.session_state.get("login_pw_input_value", "")
     pw = pw_placeholder.text_input(
         "Insira o Código de Autorização de Comando:",
         type="password",
-        key="login_pw_widget",
+        key="login_pw_widget", # Consistent key
         value=pw_value,
-        on_change=lambda: st.session_state.update(login_pw_input_value=st.session_state.login_pw_widget) # Atualiza state na mudança
+        on_change=lambda: st.session_state.update(login_pw_input_value=st.session_state.login_pw_widget) # Update state on change
     )
 
     button_placeholder = st.empty()
     if button_placeholder.button("Autenticar 🛰️", key="login_btn", disabled=st.session_state.waiting_for_nash):
-        current_input_pw = st.session_state.login_pw_input_value # Usa o valor do estado
+        current_input_pw = st.session_state.login_pw_input_value # Use the value from session state
         if not current_input_pw:
             st.warning("O código de autorização não pode estar vazio.")
-            st.session_state.waiting_for_nash = False
+            st.session_state.waiting_for_nash = False # Ensure not stuck waiting
         else:
             st.session_state.waiting_for_nash = True
+            # Store the password to be verified in session state so it survives the rerun
             st.session_state.login_pw_to_verify = current_input_pw
-            button_placeholder.empty()
-            st.rerun()
+            button_placeholder.empty() # Clear button immediately
+            st.rerun() # Rerun to show loading and process login
 
-    if st.session_state.waiting_for_nash:
+    # This block runs *after* the rerun triggered by the button click
+    if st.session_state.waiting_for_nash and "login_pw_to_verify" in st.session_state:
         loading_placeholder_login = st.empty()
         loading_placeholder_login.markdown("<div class='loading-indicator'>Autenticando com a Nave Mãe...</div>", unsafe_allow_html=True)
-        login_pw_to_check = st.session_state.get("login_pw_to_verify", "")
+        login_pw_to_check = st.session_state.login_pw_to_verify
+        login_success = False
         try:
             r = requests.post(f"{BACKEND_URL}/login", json={"password": login_pw_to_check}, timeout=REQUEST_TIMEOUT)
             if r.status_code == 200 and r.json().get("success"):
                 st.session_state.ok = True
-                st.session_state.waiting_for_nash = False
+                login_success = True
+                st.success("Autenticação bem-sucedida. Protocolos Nash desbloqueados.")
+                st.balloons()
+                # Clean up login state variables
                 if "login_pw_input_value" in st.session_state: del st.session_state.login_pw_input_value
                 if "login_pw_to_verify" in st.session_state: del st.session_state.login_pw_to_verify
                 pw_placeholder.empty()
+                button_placeholder.empty() # Ensure button placeholder is cleared if rerun happens later
                 loading_placeholder_login.empty()
-                button_placeholder.empty()
-                st.success("Autenticação bem-sucedida. Protocolos Nash desbloqueados.")
-                st.balloons()
-                time.sleep(1.5)
-                st.rerun()
             else:
-                st.session_state.waiting_for_nash = False
-                if "login_pw_to_verify" in st.session_state: del st.session_state.login_pw_to_verify
-                loading_placeholder_login.empty()
-                st.error(f"Falha na autenticação. Acesso negado. (Status: {r.status_code})")
+                 st.error(f"Falha na autenticação. Acesso negado. (Status: {r.status_code})")
 
         except requests.exceptions.RequestException as e:
-            st.session_state.waiting_for_nash = False
-            if "login_pw_to_verify" in st.session_state: del st.session_state.login_pw_to_verify
-            loading_placeholder_login.empty()
             st.error(f"Erro de rede durante a autenticação: {e}")
         except Exception as e:
-            st.session_state.waiting_for_nash = False
-            if "login_pw_to_verify" in st.session_state: del st.session_state.login_pw_to_verify
-            loading_placeholder_login.empty()
             st.error(f"Ocorreu um erro inesperado na autenticação: {e}")
+        finally:
+            st.session_state.waiting_for_nash = False
+            # Clean up verification password regardless of success/failure if not already done
+            if "login_pw_to_verify" in st.session_state: del st.session_state.login_pw_to_verify
+            loading_placeholder_login.empty() # Ensure loading is cleared
+            if login_success:
+                time.sleep(1.5) # Brief pause before clearing screen
+                st.rerun() # Rerun to show the main chat interface
 
+    # If still not ok after attempts, stop execution for this run
     if not st.session_state.ok:
         st.stop()
 
@@ -598,11 +611,13 @@ if not st.session_state.ok:
 # --- Sidebar ---
 with st.sidebar:
     st.markdown("### 🎨 Aparência")
+    theme_options = list(THEMES.keys())
+    current_theme_index = theme_options.index(st.session_state.selected_theme) if st.session_state.selected_theme in theme_options else 0
     selected_theme_name = st.selectbox(
         "Escolha o tema da interface:",
-        options=list(THEMES.keys()),
+        options=theme_options,
         key="selected_theme_widget",
-        index=list(THEMES.keys()).index(st.session_state.selected_theme),
+        index=current_theme_index,
         help="Mude a aparência visual do Nash Copilot."
     )
     if selected_theme_name != st.session_state.selected_theme:
@@ -619,29 +634,49 @@ with st.sidebar:
     uploaded = st.file_uploader(
         "📎 Anexar Arquivo ao Próximo Comando",
         type=[ "jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "svg", "py", "txt", "md", "json", "csv", "pdf", "log", "sh", "yaml", "toml", "mp3", "wav", "ogg", "mp4", "mov", "avi"],
-        key="file_uploader", label_visibility="visible",
+        key="file_uploader", # Keep key consistent
+        label_visibility="visible",
         help="Faça o upload de um arquivo que Nash possa analisar junto com seu próximo comando."
     )
     upload_status_placeholder = st.empty()
+
+    # Handle file upload logic
     if uploaded is not None:
+        # Check if it's a new file or the same file re-uploaded
         if st.session_state.uploaded_file_info != uploaded.name:
-            files = {"file": (uploaded.name, uploaded.getvalue())}
+            files = {"file": (uploaded.name, uploaded.getvalue(), uploaded.type)}
             try:
-                with st.spinner(f"Transmitindo '{escape_html(uploaded.name)}'..."):
+                with upload_status_placeholder, st.spinner(f"Transmitindo '{escape_html(uploaded.name)}'..."):
                     r = requests.post(f"{BACKEND_URL}/upload", files=files, timeout=REQUEST_TIMEOUT)
                 if r.status_code == 200:
-                    st.session_state.uploaded_file_info = uploaded.name
+                    st.session_state.uploaded_file_info = uploaded.name # Store only name for simplicity
                     upload_status_placeholder.success(f"🛰️ '{escape_html(uploaded.name)}' recebido!")
+                    # Optionally clear the uploader widget state if desired, though Streamlit usually handles this
+                    # st.session_state.file_uploader = None # Might cause issues if user interacts elsewhere
                 else:
                     st.session_state.uploaded_file_info = None
-                    upload_status_placeholder.error(f"Falha ({r.status_code}).")
-            except requests.exceptions.Timeout: st.session_state.uploaded_file_info = None; upload_status_placeholder.error("Timeout Upload.")
-            except requests.exceptions.RequestException as e: st.session_state.uploaded_file_info = None; upload_status_placeholder.error(f"Rede Upload: {e}")
-            except Exception as e: st.session_state.uploaded_file_info = None; upload_status_placeholder.error(f"Erro Upload: {e}")
+                    upload_status_placeholder.error(f"Falha no upload ({r.status_code}): {escape_html(r.text)}")
+            except requests.exceptions.Timeout:
+                st.session_state.uploaded_file_info = None
+                upload_status_placeholder.error("Timeout durante o upload.")
+            except requests.exceptions.RequestException as e:
+                st.session_state.uploaded_file_info = None
+                upload_status_placeholder.error(f"Erro de rede no upload: {e}")
+            except Exception as e:
+                st.session_state.uploaded_file_info = None
+                upload_status_placeholder.error(f"Erro inesperado no upload: {e}")
+        #else: # If same file is still selected, just show the info message
+        #    upload_status_placeholder.info(f"Pronto para anexar: `{escape_html(st.session_state.uploaded_file_info)}`")
+
+    # If uploader is cleared (no file selected), reset state
     elif uploaded is None and st.session_state.uploaded_file_info:
          st.session_state.uploaded_file_info = None
-    if st.session_state.uploaded_file_info:
-        upload_status_placeholder.info(f"Pronto: `{escape_html(st.session_state.uploaded_file_info)}`")
+         upload_status_placeholder.empty() # Clear any previous message
+
+    # If a file was successfully uploaded previously and is still the active one
+    if st.session_state.uploaded_file_info and uploaded is not None and uploaded.name == st.session_state.uploaded_file_info:
+         upload_status_placeholder.info(f"Pronto para anexar: `{escape_html(st.session_state.uploaded_file_info)}`")
+
 
     st.markdown("---", unsafe_allow_html=True)
 
@@ -650,12 +685,13 @@ with st.sidebar:
          st.session_state.nash_history = []
          st.session_state.eli_msg_count = 0
          st.session_state.nash_msg_count = 0
+         st.session_state.uploaded_file_info = None # Clear uploaded file info on session clear
          st.toast("🧹 Log da sessão limpo!", icon="✨")
          st.rerun()
     st.markdown("---", unsafe_allow_html=True)
 
     st.markdown("### 🧠 Perfil Núcleo Nash")
-    tooltip_recurso = clean_markdown("Nash tem acesso a uma vasta gama de dados e APIs...")
+    tooltip_recurso = clean_markdown("Nash tem acesso a uma vasta gama de dados e APIs para auxiliar nas suas tarefas.")
     st.markdown(
         f"""
         <div class="nash-profile-details">
@@ -670,19 +706,21 @@ with st.sidebar:
 
 # --- Área Principal de Chat ---
 st.markdown("### 🎙️ Console de Comando — Nash AI")
-# Recupera valor do estado, que foi limpo no início do script se a flag estava ativa
+# Retrieve value from state, which might have been cleared at the script start
 prompt_value = st.session_state.get("nash_prompt", "")
 prompt = st.text_area(
     "Insira comando ou consulta para Nash:",
-    key="nash_prompt", # Chave consistente para o widget
+    key="nash_prompt_widget", # Use a different key for the widget itself
     height=110,
     placeholder="Digite seu comando aqui, Capitão...",
-    value=prompt_value # O valor vem do estado (que pode ter sido limpo)
+    value=prompt_value, # Value comes from state
+    # Update the session state when the text area changes
+    on_change=lambda: st.session_state.update(nash_prompt=st.session_state.nash_prompt_widget)
 )
 
 # --- Indicador de Loading ---
 loading_placeholder_main = st.empty()
-if st.session_state.waiting_for_nash:
+if st.session_state.waiting_for_nash and st.session_state.ok: # Only show loading if logged in
     loading_placeholder_main.markdown("<div class='loading-indicator'>Nash está processando seu comando...</div>", unsafe_allow_html=True)
 
 # --- Efeito de Typing ---
@@ -695,85 +733,111 @@ def nash_typing(plain_text, target_placeholder, message_class):
             line_output = ""
             for char_index, char in enumerate(line):
                 line_output += char
-                cursor = "█"
+                cursor = "█" if (line_index < len(lines) - 1 or char_index < len(line) - 1) else "" # Cursor only while typing
+                # Escape the current content + add cursor before rendering
                 current_render_escaped = escape_html(full_render + line_output) + cursor
                 target_placeholder.markdown(f"<span class='{message_class}'>{current_render_escaped}</span>", unsafe_allow_html=True)
-                delay = 0.005 if char == ' ' else (0.05 if char in ['.', ',', '!', '?'] else 0.018)
+                # Adjust delay based on character
+                delay = 0.005 if char == ' ' else (0.04 if char in ['.', ',', '!', '?'] else 0.015)
                 time.sleep(delay)
 
-            full_render += line + "\n"
+            # Append the completed line (with newline if not the last line)
+            full_render += line + ("\n" if line_index < len(lines) - 1 else "")
+            # Render the complete line without cursor before potential sleep
             full_render_escaped = escape_html(full_render)
             target_placeholder.markdown(f"<span class='{message_class}'>{full_render_escaped}</span>", unsafe_allow_html=True)
-            if line_index < len(lines) - 1: time.sleep(0.1)
+            # Pause slightly between lines
+            if line_index < len(lines) - 1: time.sleep(0.08)
 
-        final_msg_escaped = escape_html(plain_text)
-        target_placeholder.markdown(f"<span class='{message_class}'>{final_msg_escaped}</span>", unsafe_allow_html=True)
+        # Final render without cursor (already done in the loop's last step)
+        # safe_msg = escape_html(plain_text)
+        # target_placeholder.markdown(f"<span class='{message_class}'>{safe_msg}</span>", unsafe_allow_html=True)
 
     except Exception as e:
+        # Fallback in case of error during typing
         safe_msg = escape_html(plain_text)
         target_placeholder.markdown(f"<span class='{message_class}'>[Erro typing] {safe_msg}</span>", unsafe_allow_html=True)
         print(f"Erro durante nash_typing: {e}")
 
-# --- Enviar Mensagem (CORRIGIDO) ---
+
+# --- Enviar Mensagem ---
 transmit_button_placeholder = st.empty()
-# Usa o valor atual do widget 'prompt'
-if transmit_button_placeholder.button("Transmitir para Nash 🚀", key="chat_btn", disabled=st.session_state.waiting_for_nash):
-    if prompt:
-        st.session_state.nash_history.append(("Eli", prompt))
+# Use the value from session state ('nash_prompt') which is updated by the text_area's on_change
+current_prompt = st.session_state.get("nash_prompt", "")
+
+if transmit_button_placeholder.button("Transmitir para Nash 🚀", key="chat_btn", disabled=st.session_state.waiting_for_nash or not st.session_state.ok):
+    if current_prompt:
+        st.session_state.nash_history.append(("Eli", current_prompt))
         st.session_state.eli_msg_count += 1
         st.session_state.waiting_for_nash = True
-        st.session_state.clear_prompt_on_next_run = True # Sinaliza para limpar NO PRÓXIMO rerun
-        # NÃO limpar st.session_state.nash_prompt = "" aqui
-        loading_placeholder_main.empty()
-        transmit_button_placeholder.empty()
-        st.rerun() # Rerun inicia novo ciclo onde a flag será lida
+        st.session_state.clear_prompt_on_next_run = True # Signal to clear ON NEXT rerun
+        # Do NOT clear st.session_state.nash_prompt here
+        loading_placeholder_main.empty() # Clear potential previous loading message
+        transmit_button_placeholder.empty() # Clear the button
+        st.rerun() # Rerun starts new cycle where flag will be read & backend called
     else:
         st.warning("Não posso transmitir um comando vazio, Eli.")
+        # Ensure waiting state is false if prompt was empty
         st.session_state.waiting_for_nash = False
 
 # --- Lógica de Comunicação com Backend ---
+# This block runs *after* the rerun triggered by the transmit button
 if st.session_state.waiting_for_nash and st.session_state.ok:
     last_eli_prompt = ""
-    if st.session_state.nash_history and st.session_state.nash_history[-1][0] == "Eli":
-         last_eli_prompt = st.session_state.nash_history[-1][1]
+    # Find the last message from Eli to send to the backend
+    for sender, msg_text in reversed(st.session_state.nash_history):
+        if sender == "Eli":
+            last_eli_prompt = msg_text
+            break
 
     if last_eli_prompt:
         try:
-            req = requests.post(f"{BACKEND_URL}/chat", json={"prompt": last_eli_prompt,"session_id": "eli"}, timeout=REQUEST_TIMEOUT)
+            payload = {"prompt": last_eli_prompt, "session_id": "eli"} # Assuming session_id is static for now
+            # Include file info if present
+            if st.session_state.uploaded_file_info:
+                payload["attachment_info"] = {"filename": st.session_state.uploaded_file_info} # Send metadata
+                # File data was already sent via /upload
+
+            req = requests.post(f"{BACKEND_URL}/chat", json=payload, timeout=REQUEST_TIMEOUT)
+
             if req.status_code == 200:
                 resp = req.json().get("response", "Nash parece estar sem palavras…")
                 st.session_state.nash_history.append(("Nash", resp))
                 st.session_state.nash_msg_count += 1
             else:
-                # mensagem limpa → não quebra a UI
+                # Try to get error message from JSON payload, otherwise use text
                 try:
-                    payload = req.json().get("error")
-                except ValueError:
-                    payload = req.text
-                error_msg = f"[Erro {req.status_code}: {escape_html(str(payload)[:100])}]"
+                    error_payload = req.json().get("error", req.text)
+                except ValueError: # If response is not JSON
+                    error_payload = req.text
+                error_msg = f"[Erro {req.status_code} do Backend: {escape_html(str(error_payload)[:150])}]" # Limit length
                 st.session_state.nash_history.append(("Nash", error_msg))
                 st.session_state.nash_msg_count += 1
                 st.error(f"Erro ao comunicar com Nash — código {req.status_code}.")
+
         except requests.exceptions.Timeout:
-            st.session_state.nash_history.append(("Nash", "[Erro: Timeout na resposta de Nash]"))
+            st.session_state.nash_history.append(("Nash", "[Erro Cliente: Timeout na resposta de Nash]"))
             st.session_state.nash_msg_count += 1
             st.error("Requisição para Nash expirou (timeout).")
         except requests.exceptions.RequestException as e:
-            st.session_state.nash_history.append(("Nash", f"[Erro de Rede: {e}]"))
+            st.session_state.nash_history.append(("Nash", f"[Erro Cliente: Rede - {escape_html(str(e))}]"))
             st.session_state.nash_msg_count += 1
             st.error(f"Erro de rede ao contactar Nash: {e}")
         except Exception as e:
-            st.session_state.nash_history.append(("Nash", f"[Erro Inesperado no Cliente: {e}]"))
+            st.session_state.nash_history.append(("Nash", f"[Erro Cliente: Inesperado - {escape_html(str(e))}]"))
             st.session_state.nash_msg_count += 1
-            st.error(f"Ocorreu um erro inesperado na comunicação: {e}")
+            st.error(f"Ocorreu um erro inesperado na comunicação local: {e}")
         finally:
             st.session_state.waiting_for_nash = False
-            # O rerun aqui exibirá a resposta e limpará o prompt (devido à flag e à lógica no início)
+            st.session_state.uploaded_file_info = None # Clear file after it's been processed (sent with prompt)
+            # Rerun to display Nash's response and potentially clear the prompt (due to flag)
             st.rerun()
     else:
-        st.warning("Erro interno: Não foi possível encontrar o último comando.")
+        # Should not happen if button logic is correct, but handle defensively
+        st.warning("Erro interno: Não foi possível encontrar o último comando de Eli.")
         st.session_state.waiting_for_nash = False
         st.rerun()
+
 
 # --- Easter Eggs ---
 if not st.session_state.waiting_for_nash and st.session_state.nash_history:
@@ -781,8 +845,14 @@ if not st.session_state.waiting_for_nash and st.session_state.nash_history:
     if last_entry[0] == 'Eli':
         last_prompt = last_entry[1].lower()
         if "data estelar" in last_prompt or ("data" in last_prompt and any(sub in last_prompt for sub in ["hoje", "agora", "hora"])):
-            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S %Z")
-            st.toast(f"🕒 Data Estelar (Cliente): {now}", icon="🕰️")
+            now_dt = datetime.now()
+            # Attempt to get timezone - may vary by system
+            try:
+                 tz_name = now_dt.astimezone().tzname()
+                 now_str = now_dt.strftime(f"%Y-%m-%d %H:%M:%S {tz_name}")
+            except: # Fallback if timezone fails
+                 now_str = now_dt.strftime("%Y-%m-%d %H:%M:%S")
+            st.toast(f"🕒 Data Estelar (Cliente): {now_str}", icon="🕰️")
         if "auto destruir" in last_prompt or "autodestruir" in last_prompt:
             st.warning("🚨 Sequência de auto-destruição iniciada... Brincadeirinha.")
             st.snow()
@@ -791,62 +861,83 @@ if not st.session_state.waiting_for_nash and st.session_state.nash_history:
 if st.session_state.nash_history:
     st.markdown('<div id="nash-history">', unsafe_allow_html=True)
     st.markdown("### ⏳ Log da Sessão")
-    history_container = st.container()
+    history_container = st.container() # Use a container for the history block
 
     with history_container:
         last_message_index = len(st.session_state.nash_history) - 1
         for i, (who, msg) in enumerate(st.session_state.nash_history):
             avatar_class = "avatar-nash" if who == "Nash" else "avatar-eli"
             message_class = "message-nash" if who == "Nash" else "message-eli"
-            avatar_icon = "👨‍🚀" if who == "Nash" else "🧑‍🚀"
+            avatar_icon = "👨‍🚀" if who == "Nash" else "🧑‍🚀" # Eli gets a different emoji
 
             col1, col2 = st.columns([1, 15], gap="small")
 
             with col1:
+                 # Display avatar icon
                  st.markdown(f"<span class='{avatar_class}'>{avatar_icon}</span>", unsafe_allow_html=True)
+                 # Display name below icon
                  st.markdown(f"<span class='{avatar_class}' style='font-size: 0.9em; display: block; margin-top: -5px;'>{who}:</span>", unsafe_allow_html=True)
 
+            # ================== START: CORRECTED MESSAGE RENDERING LOGIC ==================
             with col2:
-                code_pattern = re.compile(r"```(\w+)?\s*\n(.*?)\n```|```(.*?)```", re.DOTALL | re.MULTILINE)
-                last_end = 0
                 is_last_message = (i == last_message_index)
-                is_typing_message = (who == "Nash" and is_last_message and not st.session_state.waiting_for_nash)
+                # Apply typing only to the very last message from Nash when not waiting for a new response
+                apply_typing = (who == "Nash" and is_last_message and not st.session_state.waiting_for_nash)
 
-                has_code_blocks = False
+                # Regex to find ```lang\ncode\n``` or ```code``` blocks
+                # Group 1: lang (optional), Group 2: code block (multiline)
+                # Group 3: code block (single line ```code```)
+                code_pattern = re.compile(r"```(\w+)?\s*\n(.*?)\n```|```(.*?)```", re.DOTALL)
+                last_end = 0
+                message_parts = [] # Store parts to render sequentially
+
+                # 1. Split message into text and code parts
                 for match in code_pattern.finditer(msg):
-                    has_code_blocks = True
                     start, end = match.span()
-                    plain_text_before = msg[last_end:start].strip()
-                    if plain_text_before:
-                        if is_typing_message:
-                            typing_placeholder = st.empty()
-                            nash_typing(plain_text_before, typing_placeholder, message_class)
-                        else:
-                            st.markdown(f"<span class='{message_class}'>{escape_html(plain_text_before)}</span>", unsafe_allow_html=True)
-                    lang = match.group(1) or match.group(3)
-                    code = match.group(2) or match.group(4)
-                    if code:
-                        # Garantir que code seja string antes de passar para st.code
-                        st.code(str(code), language=lang.lower() if lang else None)
-                    last_end = end
-                plain_text_after = msg[last_end:].strip()
-                if plain_text_after:
-                    if is_typing_message:
-                         typing_placeholder = st.empty()
-                         nash_typing(plain_text_after, typing_placeholder, message_class)
-                    else:
-                         st.markdown(f"<span class='{message_class}'>{escape_html(plain_text_after)}</span>", unsafe_allow_html=True)
-                if not has_code_blocks:
-                    if is_typing_message:
-                        typing_placeholder = st.empty()
-                        nash_typing(msg, typing_placeholder, message_class)
-                    else:
-                        st.markdown(f"<span class='{message_class}'>{escape_html(msg)}</span>", unsafe_allow_html=True)
+                    # Text before the code block
+                    text_before = msg[last_end:start]
+                    if text_before:
+                         message_parts.append({"type": "text", "content": text_before})
 
+                    # Code block
+                    lang = match.group(1) # Lang from ```lang\ncode\n```
+                    code = match.group(2) # Code from ```lang\ncode\n```
+                    if code is None: # Matched ```code``` variation
+                        code = match.group(3)
+                        lang = None # No language specified in this format
+                    if code is not None: # Ensure code content exists
+                         message_parts.append({"type": "code", "content": str(code), "lang": lang}) # Ensure code is string
+
+                    last_end = end
+
+                # Text after the last code block (or the whole message if no blocks)
+                text_after = msg[last_end:]
+                if text_after:
+                    message_parts.append({"type": "text", "content": text_after})
+
+                # 2. Render the parts sequentially
+                for part in message_parts:
+                    if part["type"] == "text":
+                        content = part["content"].strip() # Strip whitespace for checks/display
+                        if content: # Avoid rendering empty strings
+                            if apply_typing:
+                                typing_placeholder = st.empty() # Create placeholder just for this text part
+                                nash_typing(content, typing_placeholder, message_class)
+                            else:
+                                # Render normally using markdown with escaped HTML
+                                st.markdown(f"<span class='{message_class}'>{escape_html(content)}</span>", unsafe_allow_html=True)
+                    elif part["type"] == "code":
+                        # Render code blocks using st.code
+                        st.code(part["content"], language=part["lang"].lower() if part["lang"] else None)
+
+                # The redundant 'if not has_code_blocks:' logic is now removed.
+            # =================== END: CORRECTED MESSAGE RENDERING LOGIC ===================
+
+            # Add a separator between messages, but not after the very last one
             if i < last_message_index:
                 st.markdown("<hr>", unsafe_allow_html=True)
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True) # Close nash-history div
 
-elif not st.session_state.waiting_for_nash:
+elif not st.session_state.waiting_for_nash and st.session_state.ok: # Only show if logged in
     st.markdown("> *Console aguardando o primeiro comando...*")
