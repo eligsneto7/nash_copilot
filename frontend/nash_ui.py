@@ -769,7 +769,7 @@ if st.session_state.waiting_for_nash and st.session_state.ok:
         finally:
             st.session_state.waiting_for_nash = False
             # O rerun aqui exibirá a resposta e limpará o prompt (devido à flag e à lógica no início)
-            
+            st.rerun()
     else:
         st.warning("Erro interno: Não foi possível encontrar o último comando.")
         st.session_state.waiting_for_nash = False
