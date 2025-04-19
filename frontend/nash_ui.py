@@ -135,18 +135,26 @@ section.main > div {
 .avatar-nash { color:#0affa0; }
 .avatar-eli { color:#ff07e6; }
 .message-nash {
-    color: #b0e0e6; border-left: 3px solid #0affa070;
-    display: inline-block; padding: 5px 10px; border-radius: 5px; background-color: rgba(255, 255, 255, 0.04);
+    /* color: #b0e0e6; */ /* COR ANTIGA */
+    color: #e5f0ff; /* COR NOVA: Off-white mais brilhante */
+    border-left: 3px solid #0affa070;
+    display: inline-block; padding: 5px 10px; border-radius: 5px;
+    /* background-color: rgba(255, 255, 255, 0.04); */ /* FUNDO ANTIGO */
+    background-color: rgba(10, 255, 160, 0.08); /* FUNDO NOVO: Leve brilho verde */
     margin-top: 0; line-height: 1.5; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-    white-space: pre-wrap; /* Garante quebras de linha */
-    word-wrap: break-word; /* Garante quebras de palavras longas */
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 .message-eli {
-    color: #ffc0e8; border-left: 3px solid #ff07e670;
-    display: inline-block; padding: 5px 10px; border-radius: 5px; background-color: rgba(255, 255, 255, 0.04);
+    /* color: #ffc0e8; */ /* COR ANTIGA */
+    color: #ffccf9; /* COR NOVA: Rosa claro mais brilhante */
+    border-left: 3px solid #ff07e670;
+    display: inline-block; padding: 5px 10px; border-radius: 5px;
+    /* background-color: rgba(255, 255, 255, 0.04); */ /* FUNDO ANTIGO */
+    background-color: rgba(255, 7, 230, 0.08); /* FUNDO NOVO: Leve brilho rosa */
     margin-top: 0; line-height: 1.5; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-    white-space: pre-wrap; /* Garante quebras de linha */
-    word-wrap: break-word; /* Garante quebras de palavras longas */
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 .message-nash a, .message-eli a {
     color: #87cefa; text-decoration: underline; text-decoration-style: dashed; text-underline-offset: 3px;
@@ -329,20 +337,25 @@ section.main > div {
     font-size: 0.9em; /* Ajuste para nome não ficar tão grande */
 }
 .avatar-nash { color:#0a58ca; }
-.avatar-eli { color:#d63384; }
+.avatar-eli { color:#d63384; } /* Cor do nome Eli mantida */
 .message-nash {
-    color: #212529; background-color: #f1f3f5;
+    /* color: #212529; */ /* COR ANTIGA: Cinza escuro */
+    color: #0b5ed7; /* COR NOVA: Azul primário do tema */
+    /* background-color: #f1f3f5; */ /* FUNDO ANTIGO: Cinza muito claro */
+    background-color: #e9ecef; /* FUNDO NOVO: Cinza claro padrão (ligeiramente mais escuro) */
     display: inline-block; padding: 6px 12px; border-radius: 15px;
     margin-top: 0; line-height: 1.5; text-shadow: none; border-left: none;
-    white-space: pre-wrap; /* Garante quebras de linha */
-    word-wrap: break-word; /* Garante quebras de palavras longas */
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 .message-eli {
-    color: #055160; background-color: #e3f2fd;
+    color: #055160; /* COR MANTIDA: Dark Teal (bom contraste) */
+    /* background-color: #e3f2fd; */ /* FUNDO ANTIGO: Azul muito claro */
+    background-color: #f8f0fc; /* FUNDO NOVO: Roxo bem claro para distinção */
     display: inline-block; padding: 6px 12px; border-radius: 15px;
     margin-top: 0; line-height: 1.5; text-shadow: none; border-left: none;
-    white-space: pre-wrap; /* Garante quebras de linha */
-    word-wrap: break-word; /* Garante quebras de palavras longas */
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 .message-nash a, .message-eli a { color: #0d6efd; text-decoration: underline; text-decoration-style: solid; }
 .message-nash a:hover, .message-eli a:hover { color: #0a58ca; }
@@ -460,7 +473,8 @@ def check_backend_status(force_check=False):
     if not force_check and (now - st.session_state.last_backend_check) < timedelta(seconds=60):
         return st.session_state.backend_status
     try:
-        r = requests.get(f"{BACKEND_URL}/uploads", timeout=REQUEST_TIMEOUT[0]) # Assuming /uploads is a valid health check endpoint
+        # Assuming /uploads is a valid health check endpoint or similar
+        r = requests.get(f"{BACKEND_URL}/", timeout=REQUEST_TIMEOUT[0]) # Check root or a dedicated health endpoint
         status = "ONLINE ⚡" if r.status_code == 200 else f"AVISO {r.status_code}"
     except requests.exceptions.Timeout: status = "TIMEOUT ⏳"
     except requests.exceptions.ConnectionError: status = "OFFLINE 👾"
@@ -588,7 +602,9 @@ if not st.session_state.ok:
                 button_placeholder.empty() # Ensure button placeholder is cleared if rerun happens later
                 loading_placeholder_login.empty()
             else:
-                 st.error(f"Falha na autenticação. Acesso negado. (Status: {r.status_code})")
+                 error_detail = r.json().get("error", f"Status {r.status_code}") if r.content else f"Status {r.status_code}"
+                 st.error(f"Falha na autenticação: {escape_html(error_detail)}")
+
 
         except requests.exceptions.RequestException as e:
             st.error(f"Erro de rede durante a autenticação: {e}")
@@ -731,9 +747,15 @@ def nash_typing(plain_text, target_placeholder, message_class):
     try:
         for line_index, line in enumerate(lines):
             line_output = ""
-            for char_index, char in enumerate(line):
+            # Strip leading/trailing whitespace from line for processing
+            processed_line = line.strip()
+            if not processed_line and line_index < len(lines) - 1: # Handle empty lines between paragraphs
+                full_render += "\n" # Add the newline back
+                continue # Skip typing effect for empty lines
+
+            for char_index, char in enumerate(processed_line):
                 line_output += char
-                cursor = "█" if (line_index < len(lines) - 1 or char_index < len(line) - 1) else "" # Cursor only while typing
+                cursor = "█" # Keep cursor until the very end
                 # Escape the current content + add cursor before rendering
                 current_render_escaped = escape_html(full_render + line_output) + cursor
                 target_placeholder.markdown(f"<span class='{message_class}'>{current_render_escaped}</span>", unsafe_allow_html=True)
@@ -742,16 +764,14 @@ def nash_typing(plain_text, target_placeholder, message_class):
                 time.sleep(delay)
 
             # Append the completed line (with newline if not the last line)
-            full_render += line + ("\n" if line_index < len(lines) - 1 else "")
+            full_render += processed_line + ("\n" if line_index < len(lines) - 1 else "")
             # Render the complete line without cursor before potential sleep
             full_render_escaped = escape_html(full_render)
             target_placeholder.markdown(f"<span class='{message_class}'>{full_render_escaped}</span>", unsafe_allow_html=True)
-            # Pause slightly between lines
-            if line_index < len(lines) - 1: time.sleep(0.08)
+            # Pause slightly between lines if it wasn't an empty line originally
+            if line and line_index < len(lines) - 1: time.sleep(0.08)
 
         # Final render without cursor (already done in the loop's last step)
-        # safe_msg = escape_html(plain_text)
-        # target_placeholder.markdown(f"<span class='{message_class}'>{safe_msg}</span>", unsafe_allow_html=True)
 
     except Exception as e:
         # Fallback in case of error during typing
@@ -885,8 +905,6 @@ if st.session_state.nash_history:
                 apply_typing = (who == "Nash" and is_last_message and not st.session_state.waiting_for_nash)
 
                 # Regex to find ```lang\ncode\n``` or ```code``` blocks
-                # Group 1: lang (optional), Group 2: code block (multiline)
-                # Group 3: code block (single line ```code```)
                 code_pattern = re.compile(r"```(\w+)?\s*\n(.*?)\n```|```(.*?)```", re.DOTALL)
                 last_end = 0
                 message_parts = [] # Store parts to render sequentially
@@ -918,14 +936,20 @@ if st.session_state.nash_history:
                 # 2. Render the parts sequentially
                 for part in message_parts:
                     if part["type"] == "text":
-                        content = part["content"].strip() # Strip whitespace for checks/display
-                        if content: # Avoid rendering empty strings
+                        content = part["content"] # Keep original spacing for typing/rendering
+                        # Check if content is not just whitespace before rendering
+                        if content.strip():
                             if apply_typing:
                                 typing_placeholder = st.empty() # Create placeholder just for this text part
                                 nash_typing(content, typing_placeholder, message_class)
                             else:
                                 # Render normally using markdown with escaped HTML
-                                st.markdown(f"<span class='{message_class}'>{escape_html(content)}</span>", unsafe_allow_html=True)
+                                # Preserve whitespace using style="white-space: pre-wrap;"
+                                st.markdown(f"<span class='{message_class}' style='white-space: pre-wrap;'>{escape_html(content)}</span>", unsafe_allow_html=True)
+                        # If the original content was just whitespace (like a newline), render it to maintain structure
+                        elif content:
+                            st.markdown(f"<span class='{message_class}' style='white-space: pre-wrap; display: block; height: 1em;'></span>", unsafe_allow_html=True) # Render newline as space
+
                     elif part["type"] == "code":
                         # Render code blocks using st.code
                         st.code(part["content"], language=part["lang"].lower() if part["lang"] else None)
