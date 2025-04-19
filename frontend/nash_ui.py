@@ -522,9 +522,9 @@ motivations = [
 uptime_delta = datetime.now() - st.session_state.start_time
 uptime_str = str(timedelta(seconds=int(uptime_delta.total_seconds())))
 ascii_art = f"""
-> Status: <b>{ ('Operacional' if current_backend_status.startswith('ONLINE') else 'Parcial') if st.session_state.ok else 'Bloqueado'}</b> | Humor: Sarcástico IV
-> Temp. Núcleo: <b>Nominal</b> | Matriz Lógica: Ativa
-> Missão: <b>Dominar o Universo</b> | Diretriz: Sobreviver
+> Status: { ('Operacional' if current_backend_status.startswith('ONLINE') else 'Parcial') if st.session_state.ok else 'Bloqueado'} | Humor: Sarcástico IV
+> Temp. Núcleo: Nominal | Matriz Lógica: Ativa
+> Missão: Dominar o Universo | Diretriz: Sobreviver
 """.strip()
 safe_ascii_art = escape_html(ascii_art)
 # Re-apply <b> tags after escaping other HTML
