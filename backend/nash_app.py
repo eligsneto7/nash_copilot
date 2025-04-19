@@ -81,7 +81,7 @@ digital mundial — ENGAGE!
     client = OpenAI(api_key=OPENAI_KEY)
     try:
         completion = client.chat.completions.create(
-            model="gpt-4o",                # ← novo modelo
+            model="o3",                # ← novo modelo
             messages=messages,
             timeout=30,                    # segundos
         )
