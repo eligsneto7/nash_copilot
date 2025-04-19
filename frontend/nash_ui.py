@@ -124,7 +124,7 @@ section.main > div {
     box-shadow: inset 0 0 15px #000000a0, 0 0 15px #0aebff10;
 }
 #nash-history h3 {
-    color: #ff07e6; text-shadow: 0 0 10px #ff07e670; border-bottom: 1px solid #ff07e640; padding-bottom: 5px; margin-bottom: 18px;
+    color: #ff07e6; text-shadow: none; border-bottom: 1px solid #ff07e640; padding-bottom: 5px; margin-bottom: 18px;
 }
 
 /* --- Avatares e Mensagens no Chat --- */
@@ -136,28 +136,28 @@ section.main > div {
 .avatar-eli { color:#ff07e6; }
 .message-nash {
     /* color: #b0e0e6; */ /* COR ANTIGA */
-    color: #e5f0ff; /* COR NOVA: Off-white mais brilhante */
+    color: #000000; /* COR NOVA: Off-white mais brilhante */
     border-left: 3px solid #0affa070;
     display: inline-block; padding: 5px 10px; border-radius: 5px;
     /* background-color: rgba(255, 255, 255, 0.04); */ /* FUNDO ANTIGO */
     background-color: rgba(10, 255, 160, 0.08); /* FUNDO NOVO: Leve brilho verde */
-    margin-top: 0; line-height: 1.5; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    margin-top: 0; line-height: 1.5; text-shadow: none;
     white-space: pre-wrap;
     word-wrap: break-word;
 }
 .message-eli {
     /* color: #ffc0e8; */ /* COR ANTIGA */
-    color: #ffccf9; /* COR NOVA: Rosa claro mais brilhante */
+    color: #000000; /* COR NOVA: Rosa claro mais brilhante */
     border-left: 3px solid #ff07e670;
     display: inline-block; padding: 5px 10px; border-radius: 5px;
     /* background-color: rgba(255, 255, 255, 0.04); */ /* FUNDO ANTIGO */
     background-color: rgba(255, 7, 230, 0.08); /* FUNDO NOVO: Leve brilho rosa */
-    margin-top: 0; line-height: 1.5; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    margin-top: 0; line-height: 1.5; text-shadow: none;
     white-space: pre-wrap;
     word-wrap: break-word;
 }
 .message-nash a, .message-eli a {
-    color: #87cefa; text-decoration: underline; text-decoration-style: dashed; text-underline-offset: 3px;
+    color: #000000; text-decoration: underline; text-decoration-style: dashed; text-underline-offset: 3px;
 }
 .message-nash a:hover, .message-eli a:hover { color: #ffffff; text-decoration-style: solid; }
 
@@ -340,7 +340,7 @@ section.main > div {
 .avatar-eli { color:#d63384; } /* Cor do nome Eli mantida */
 .message-nash {
     /* color: #212529; */ /* COR ANTIGA: Cinza escuro */
-    color: #0b5ed7; /* COR NOVA: Azul primário do tema */
+    color: #000000; /* COR NOVA: Azul primário do tema */
     /* background-color: #f1f3f5; */ /* FUNDO ANTIGO: Cinza muito claro */
     background-color: #e9ecef; /* FUNDO NOVO: Cinza claro padrão (ligeiramente mais escuro) */
     display: inline-block; padding: 6px 12px; border-radius: 15px;
@@ -349,7 +349,7 @@ section.main > div {
     word-wrap: break-word;
 }
 .message-eli {
-    color: #055160; /* COR MANTIDA: Dark Teal (bom contraste) */
+    color: #000000; /* COR MANTIDA: Dark Teal (bom contraste) */
     /* background-color: #e3f2fd; */ /* FUNDO ANTIGO: Azul muito claro */
     background-color: #f8f0fc; /* FUNDO NOVO: Roxo bem claro para distinção */
     display: inline-block; padding: 6px 12px; border-radius: 15px;
@@ -357,7 +357,7 @@ section.main > div {
     white-space: pre-wrap;
     word-wrap: break-word;
 }
-.message-nash a, .message-eli a { color: #0d6efd; text-decoration: underline; text-decoration-style: solid; }
+.message-nash a, .message-eli a { color: #000000; text-decoration: underline; text-decoration-style: solid; }
 .message-nash a:hover, .message-eli a:hover { color: #0a58ca; }
 
 /* --- Estilos para st.code --- */
