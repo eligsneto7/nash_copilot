@@ -1,12 +1,17 @@
 # --- START OF FILE nash_ui.py ---
 
 import streamlit as st
-import requests, time, random, re, html
+import requests
+import time
+import random
+import re
+import html
 from datetime import datetime, timedelta
 
 # --- Constantes ---
-BACKEND_URL = "https://nashcopilot-production.up.railway.app"
-REQUEST_TIMEOUT = (5, 65) # (connect timeout, read timeout)
+BACKEND_URL = "https://nashcopilot-production.up.railway.app" # Certifique-se que está correto
+REQUEST_TIMEOUT = (5, 90) # Aumentado o read timeout para 90s
+MAX_PROMPT_DISPLAY_LEN = 50 # Para o indicador de loading
 
 # --- Textos Customizáveis para os Sinais (Mantido) ---
 sign_panic_text = "NÃO ENTRE EM PÂNICO"
@@ -61,6 +66,7 @@ section.main > div {
     border-radius: 15px; border: 1px solid #0aebff30;
     box-shadow: 0 0 25px #0aebff10, inset 0 0 20px rgba(0,0,0,0.5);
     margin-bottom: 2rem;
+    padding-bottom: 5rem; /* Add padding to bottom to prevent overlap with input */
 }
 
 /* --- Visor Holográfico --- */
@@ -96,8 +102,16 @@ section.main > div {
 .stButton>button:active { background: #15182a; }
 .stButton.clear-button>button { border-color: #ff07e670; color: #ffc0e8; box-shadow: 0 0 10px #ff07e620; }
 .stButton.clear-button>button:hover { border-color: #ff07e6; background: #3d1f35; box-shadow: 0 0 18px #ff07e660; color: #ffffff; }
+/* Botão Regenerar */
+.stButton.regenerate-button>button {
+    border-color: #87cefa70; color: #add8e6; box-shadow: 0 0 8px #87cefa20;
+    padding: 0.2rem 0.5rem; font-size: 0.8em; margin-left: 10px;
+}
+.stButton.regenerate-button>button:hover {
+    border-color: #87cefa; background: #1f3d4d; box-shadow: 0 0 15px #87cefa60; color: #ffffff;
+}
 
-/* --- Área de Input --- */
+/* --- Área de Input e Contador --- */
 .stTextArea textarea {
     background: #101225 !important; color: #d8e0ff !important; border: 1px solid #0affa040 !important;
     border-radius: 5px !important; box-shadow: inset 0 0 10px #00000060; font-size: 1.05em; padding: 10px 12px;
@@ -107,6 +121,8 @@ section.main > div {
 ::-moz-placeholder { color: #0affa0 !important; opacity: 0.5 !important; }
 :-ms-input-placeholder { color: #0affa0 !important; opacity: 0.5 !important; }
 :-moz-placeholder { color: #0affa0 !important; opacity: 0.5 !important; }
+.char-counter { font-size: 0.85em; color: #0affa0a0; text-align: right; margin-top: -8px; margin-right: 5px; }
+
 
 /* --- File Uploader (Sidebar) --- */
 .stFileUploader {
@@ -128,38 +144,45 @@ section.main > div {
 }
 
 /* --- Avatares e Mensagens no Chat --- */
+.avatar-container { display: flex; flex-direction: column; align-items: center; }
+.avatar-name { font-size: 0.9em; margin-top: -5px; display: block; }
+.message-timestamp { font-size: 0.75em; color: #9aabb3; opacity: 0.7; margin-top: 3px; display: block; }
+
 .avatar-nash, .avatar-eli {
     font-weight:bold; filter: drop-shadow(0 0 6px); display: block; margin-bottom: 4px;
-    font-size: 0.9em; /* Ajuste para nome não ficar tão grande */
+    font-size: 1.2em; /* Tamanho do emoji/icon */
 }
 .avatar-nash { color:#0affa0; }
 .avatar-eli { color:#ff07e6; }
+
+.message-container { display: flex; align-items: flex-start; } /* Align button with text */
+
 .message-nash {
-    /* color: #b0e0e6; */ /* COR ANTIGA */
-    color: #000000; /* COR NOVA: Off-white mais brilhante */
+    color: #e0e8ff; /* COR PADRÃO: Texto claro de alto contraste */
     border-left: 3px solid #0affa070;
     display: inline-block; padding: 5px 10px; border-radius: 5px;
-    /* background-color: rgba(255, 255, 255, 0.04); */ /* FUNDO ANTIGO */
     background-color: rgba(10, 255, 160, 0.08); /* FUNDO NOVO: Leve brilho verde */
     margin-top: 0; line-height: 1.5; text-shadow: none;
     white-space: pre-wrap;
     word-wrap: break-word;
+    flex-grow: 1; /* Allow message text to take available space */
 }
 .message-eli {
-    /* color: #ffc0e8; */ /* COR ANTIGA */
-    color: #000000; /* COR NOVA: Rosa claro mais brilhante */
+    color: #e0e8ff; /* COR PADRÃO: Texto claro de alto contraste */
     border-left: 3px solid #ff07e670;
     display: inline-block; padding: 5px 10px; border-radius: 5px;
-    /* background-color: rgba(255, 255, 255, 0.04); */ /* FUNDO ANTIGO */
     background-color: rgba(255, 7, 230, 0.08); /* FUNDO NOVO: Leve brilho rosa */
     margin-top: 0; line-height: 1.5; text-shadow: none;
     white-space: pre-wrap;
     word-wrap: break-word;
+    flex-grow: 1;
 }
 .message-nash a, .message-eli a {
-    color: #000000; text-decoration: underline; text-decoration-style: dashed; text-underline-offset: 3px;
+    color: #87cefa; /* Link color */
+    text-decoration: underline; text-decoration-style: dashed; text-underline-offset: 3px;
 }
 .message-nash a:hover, .message-eli a:hover { color: #ffffff; text-decoration-style: solid; }
+
 
 /* --- Estilos para st.code --- */
 .stCodeBlock {
@@ -193,10 +216,18 @@ section.main > div {
     color: #ff07e6; text-shadow: 0 0 8px #ff07e650; margin-top: 10px; margin-bottom: 4px;
 }
 .stSidebar .stMarkdown { color: #c8d3ff; }
-.stSidebar .stMarkdown > *, .stSidebar .stFileUploader, .stSidebar .stButton, .stSidebar .stSelectbox {
+.stSidebar .stMarkdown > *, .stSidebar .stFileUploader, .stSidebar .stButton, .stSidebar .stSelectbox, .stSidebar .stDownloadButton { /* Added DownloadButton */
     margin-bottom: 0.35rem;
 }
-.stSidebar .stButton { margin-top: 0.5rem; }
+.stSidebar .stButton, .stSidebar .stDownloadButton { margin-top: 0.5rem; } /* Added DownloadButton */
+/* Style Download Button like others */
+.stDownloadButton>button {
+    color: #e0e8ff; background: #1f243d; border-radius: 8px; border: 2px solid #0affa070;
+    font-weight: bold; transition: all 0.3s ease; box-shadow: 0 0 10px #0affa020; padding: 0.4rem 0.8rem;
+    width: 100%; /* Make it full width */
+}
+.stDownloadButton>button:hover { background: #2a3050; border-color: #0affa0; box-shadow: 0 0 18px #0affa060; color: #ffffff; }
+
 .nash-profile-details {
     font-size: 0.9em; line-height: 1.4; margin-top: -5px; color: #c8d3ff;
 }
@@ -224,10 +255,16 @@ section.main > div {
 .loading-indicator::before {
     content: '🧠'; margin-right: 10px; font-size: 1.2em; animation: spin 2s linear infinite;
 }
+.loading-indicator span { /* Style the prompt text */
+    opacity: 0.8;
+    margin-left: 5px;
+    font-style: italic;
+}
 
 /* --- Mobile Responsiveness --- */
 @media (max-width: 768px) {
     body { font-size: 14px; }
+    section.main > div { padding-bottom: 6rem; } /* More padding on mobile */
     #visor { flex-direction: column; align-items: flex-start; gap: 15px; padding: 15px; }
     .nash-avatar-emoji { font-size: 50px; margin-right: 0; margin-bottom: 10px; }
     .nash-holo { font-size: 1.8em; }
@@ -239,8 +276,11 @@ section.main > div {
     .message-nash, .message-eli { padding: 4px 8px; }
     .stCodeBlock code { font-size: 0.9em; }
     #backend-status { font-size: 0.8em; padding: 3px 7px; top: 5px; right: 10px; }
-    .st-emotion-cache-1y4p8pa { gap: 0.5rem !important; } /* Reduz gap nas colunas do chat em mobile */
-    .avatar-nash, .avatar-eli { font-size: 0.8em; } /* Nomes menores no chat mobile */
+    /* Ensure chat columns have less gap on mobile */
+    .st-emotion-cache-ocqkz7 { gap: 0.3rem !important; } /* Adjust based on Streamlit version/class */
+    .avatar-name { font-size: 0.8em; }
+    .message-timestamp { font-size: 0.7em; }
+    .stButton.regenerate-button>button { font-size: 0.75em; padding: 0.15rem 0.4rem; margin-left: 5px; }
 }
 </style>
 """
@@ -269,6 +309,7 @@ body:before { display: none; }
 section.main > div {
     background: #ffffff !important; border-radius: 8px; border: 1px solid #d1d5db;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 2rem;
+    padding-bottom: 5rem; /* Add padding to bottom to prevent overlap with input */
 }
 
 /* --- Visor --- */
@@ -301,8 +342,16 @@ section.main > div {
 .stButton>button:active { background: #0a58ca; }
 .stButton.clear-button>button { background: #dc3545; border-color: #dc3545; color: #fff; }
 .stButton.clear-button>button:hover { background: #bb2d3b; border-color: #b02a37; }
+/* Botão Regenerar */
+.stButton.regenerate-button>button {
+    border-color: #adb5bd; color: #495057; background: #f8f9fa; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    padding: 0.2rem 0.5rem; font-size: 0.8em; margin-left: 10px; border-width: 1px;
+}
+.stButton.regenerate-button>button:hover {
+    border-color: #6c757d; background: #e9ecef; color: #212529;
+}
 
-/* --- Área de Input --- */
+/* --- Área de Input e Contador --- */
 .stTextArea textarea {
     background: #ffffff !important; color: #212529 !important; border: 1px solid #ced4da !important;
     border-radius: 5px !important; box-shadow: inset 0 1px 2px rgba(0,0,0,0.075); font-size: 1em; padding: 8px 10px;
@@ -313,6 +362,7 @@ section.main > div {
 ::-moz-placeholder { color: #6c757d !important; opacity: 1 !important; }
 :-ms-input-placeholder { color: #6c757d !important; opacity: 1 !important; }
 :-moz-placeholder { color: #6c757d !important; opacity: 1 !important; }
+.char-counter { font-size: 0.85em; color: #6c757d; text-align: right; margin-top: -8px; margin-right: 5px; }
 
 /* --- File Uploader (Sidebar) --- */
 .stFileUploader {
@@ -332,33 +382,40 @@ section.main > div {
 }
 
 /* --- Avatares e Mensagens no Chat --- */
+.avatar-container { display: flex; flex-direction: column; align-items: center; }
+.avatar-name { font-size: 0.9em; margin-top: -5px; display: block; }
+.message-timestamp { font-size: 0.75em; color: #6c757d; opacity: 0.8; margin-top: 3px; display: block; }
+
 .avatar-nash, .avatar-eli {
     font-weight:bold; filter: none; display: block; margin-bottom: 4px;
-    font-size: 0.9em; /* Ajuste para nome não ficar tão grande */
+    font-size: 1.2em; /* Tamanho do emoji/icon */
 }
 .avatar-nash { color:#0a58ca; }
 .avatar-eli { color:#d63384; } /* Cor do nome Eli mantida */
+
+.message-container { display: flex; align-items: flex-start; }
+
 .message-nash {
-    /* color: #212529; */ /* COR ANTIGA: Cinza escuro */
-    color: #000000; /* COR NOVA: Azul primário do tema */
-    /* background-color: #f1f3f5; */ /* FUNDO ANTIGO: Cinza muito claro */
+    color: #212529; /* COR PADRÃO: Texto escuro de alto contraste */
     background-color: #e9ecef; /* FUNDO NOVO: Cinza claro padrão (ligeiramente mais escuro) */
     display: inline-block; padding: 6px 12px; border-radius: 15px;
     margin-top: 0; line-height: 1.5; text-shadow: none; border-left: none;
     white-space: pre-wrap;
     word-wrap: break-word;
+    flex-grow: 1;
 }
 .message-eli {
-    color: #000000; /* COR MANTIDA: Dark Teal (bom contraste) */
-    /* background-color: #e3f2fd; */ /* FUNDO ANTIGO: Azul muito claro */
+    color: #212529; /* COR PADRÃO: Texto escuro de alto contraste */
     background-color: #f8f0fc; /* FUNDO NOVO: Roxo bem claro para distinção */
     display: inline-block; padding: 6px 12px; border-radius: 15px;
     margin-top: 0; line-height: 1.5; text-shadow: none; border-left: none;
     white-space: pre-wrap;
     word-wrap: break-word;
+    flex-grow: 1;
 }
-.message-nash a, .message-eli a { color: #000000; text-decoration: underline; text-decoration-style: solid; }
+.message-nash a, .message-eli a { color: #0d6efd; text-decoration: underline; text-decoration-style: solid; }
 .message-nash a:hover, .message-eli a:hover { color: #0a58ca; }
+
 
 /* --- Estilos para st.code --- */
 .stCodeBlock {
@@ -391,10 +448,20 @@ section.main > div {
     color: #0b5ed7; text-shadow: none; margin-top: 10px; margin-bottom: 4px; font-size: 1.1em;
 }
 .stSidebar .stMarkdown { color: #495057; }
-.stSidebar .stMarkdown > *, .stSidebar .stFileUploader, .stSidebar .stButton, .stSidebar .stSelectbox {
+.stSidebar .stMarkdown > *, .stSidebar .stFileUploader, .stSidebar .stButton, .stSidebar .stSelectbox, .stSidebar .stDownloadButton { /* Added DownloadButton */
      margin-bottom: 0.8rem;
 }
-.stSidebar .stButton { margin-top: 0.5rem; }
+.stSidebar .stButton, .stSidebar .stDownloadButton { margin-top: 0.5rem; } /* Added DownloadButton */
+/* Style Download Button like others */
+.stDownloadButton>button {
+    color: #ffffff; background: #0d6efd; border-radius: 5px; border: 1px solid #0d6efd;
+    font-weight: normal; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.1); padding: 0.35rem 0.75rem;
+    font-family: 'Roboto', sans-serif;
+    width: 100%; /* Make it full width */
+}
+.stDownloadButton>button:hover { background: #0b5ed7; border-color: #0a58ca; box-shadow: 0 2px 4px rgba(0,0,0,0.1); color: #ffffff; }
+
+
 .nash-profile-details {
     font-size: 0.9em; line-height: 1.4; margin-top: -5px; color: #495057;
 }
@@ -416,10 +483,17 @@ section.main > div {
     box-shadow: 0 0 8px #cfe2ff; animation: thinking-pulse 1.5s infinite ease-in-out;
 }
 .loading-indicator::before { content: '⏳'; margin-right: 10px; font-size: 1.2em; animation: spin 2s linear infinite; }
+.loading-indicator span { /* Style the prompt text */
+    opacity: 0.8;
+    margin-left: 5px;
+    font-style: italic;
+}
+
 
 /* --- Mobile Responsiveness --- */
 @media (max-width: 768px) {
     body { font-size: 15px; }
+    section.main > div { padding-bottom: 6rem; } /* More padding on mobile */
     #visor { flex-direction: column; align-items: flex-start; gap: 10px; padding: 10px 15px; }
     .nash-avatar-emoji { font-size: 40px; margin-bottom: 5px; }
     .nash-holo { font-size: 1.5em; }
@@ -431,8 +505,11 @@ section.main > div {
     .message-nash, .message-eli { padding: 5px 10px; }
     .stCodeBlock code { font-size: 0.85em; }
     #backend-status { font-size: 0.8em; padding: 3px 7px; top: 5px; right: 10px; }
-    .st-emotion-cache-1y4p8pa { gap: 0.5rem !important; } /* Reduz gap nas colunas do chat em mobile */
-    .avatar-nash, .avatar-eli { font-size: 0.8em; } /* Nomes menores no chat mobile */
+    /* Ensure chat columns have less gap on mobile */
+    .st-emotion-cache-ocqkz7 { gap: 0.3rem !important; } /* Adjust based on Streamlit version/class */
+    .avatar-name { font-size: 0.8em; }
+    .message-timestamp { font-size: 0.7em; }
+    .stButton.regenerate-button>button { font-size: 0.75em; padding: 0.15rem 0.4rem; margin-left: 5px; }
 }
 </style>
 """
@@ -446,64 +523,90 @@ THEMES = {
 default_session_state = {
     "clear_prompt_on_next_run": False,
     "start_time": datetime.now(),
-    "nash_history": [],
+    "nash_history": [],           # Stores tuples of (who, message_text, timestamp)
     "eli_msg_count": 0,
     "nash_msg_count": 0,
     "nash_welcome": True,
-    "ok": False,
+    "ok": False,                  # Login status
     "backend_status": "VERIFICANDO...",
     "last_backend_check": datetime.min,
-    "waiting_for_nash": False,
-    "uploaded_file_info": None,
-    "selected_theme": "Cyberpunk"
+    "waiting_for_nash": False,    # Flag to disable input/buttons during backend call
+    "uploaded_file_info": None,   # Stores name of successfully uploaded file
+    "selected_theme": "Cyberpunk",
+    "scroll_to_bottom": False,    # Flag to trigger JS scroll
+    "prompt_to_regenerate": None, # Stores the prompt when user clicks regenerate
+    "current_prompt": ""          # Store current text input value
 }
-# Adicionar chaves que faltam com valores padrão
-if "nash_prompt" not in st.session_state: st.session_state.nash_prompt = ""
-if "login_pw_input_value" not in st.session_state: st.session_state.login_pw_input_value = ""
 
+# Initialize missing keys
 for key, default_value in default_session_state.items():
     if key not in st.session_state:
         st.session_state[key] = default_value
+
+# Backward compatibility for history format (if upgrading from previous state)
+if st.session_state.nash_history and len(st.session_state.nash_history[0]) == 2:
+    st.toast("Atualizando formato do histórico...", icon="⏳")
+    st.session_state.nash_history = [
+        (who, msg, st.session_state.start_time) # Add a default timestamp
+        for who, msg in st.session_state.nash_history
+    ]
+    time.sleep(1) # Allow toast to show
+
 # -----------------------------------------------------------------------
 
 # --- Funções Auxiliares ---
 def check_backend_status(force_check=False):
     """Verifica o status do backend com cache."""
     now = datetime.now()
+    # Cache status for 60 seconds unless forced
     if not force_check and (now - st.session_state.last_backend_check) < timedelta(seconds=60):
         return st.session_state.backend_status
     try:
-        # Assuming /uploads is a valid health check endpoint or similar
-        r = requests.get(f"{BACKEND_URL}/", timeout=REQUEST_TIMEOUT[0]) # Check root or a dedicated health endpoint
+        # Check root or a dedicated health endpoint like /health
+        r = requests.get(f"{BACKEND_URL}/", timeout=REQUEST_TIMEOUT[0]) # connect timeout only
         status = "ONLINE ⚡" if r.status_code == 200 else f"AVISO {r.status_code}"
     except requests.exceptions.Timeout: status = "TIMEOUT ⏳"
     except requests.exceptions.ConnectionError: status = "OFFLINE 👾"
-    except Exception: status = "ERRO ⁉️"
+    except Exception as e:
+        print(f"Backend Check Error: {e}") # Log unexpected errors
+        status = "ERRO ⁉️"
     st.session_state.backend_status = status
     st.session_state.last_backend_check = now
     return status
 
 def clean_markdown(text):
     """Remove formatação básica e escapa aspas para tooltips."""
-    text = re.sub(r'[\*_`]', '', text)
-    text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
-    text = text.replace('"', '"') # Use " for tooltips
+    text = re.sub(r'[\*_`]', '', text) # Remove *, _, `
+    text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text) # Remove links but keep text
+    text = text.replace('"', '"') # Escape quotes for HTML attributes
     return text
 
 def escape_html(text: str) -> str:
     """Escapa caracteres HTML antes de injetar no Streamlit."""
     if not isinstance(text, str):
         text = str(text)
-    return html.escape(text, quote=False) # quote=False is generally safer for markdown display
+    # Escape &, <, > by default. quote=False prevents escaping "
+    return html.escape(text, quote=False)
+
+def format_history_for_export(history):
+    """Formats chat history for text/markdown export."""
+    lines = ["# Log da Sessão Nash Copilot\n\n"]
+    for who, msg, ts in history:
+        timestamp_str = ts.strftime('%Y-%m-%d %H:%M:%S')
+        prefix = f"[{timestamp_str}] {who}:"
+        # Indent message content for readability
+        formatted_msg = "\n".join(["  " + line for line in msg.splitlines()])
+        lines.append(f"{prefix}\n{formatted_msg}\n")
+    return "\n".join(lines)
 
 # --- Aplica o Tema Selecionado ---
 selected_theme_css = THEMES.get(st.session_state.selected_theme, CYBERPUNK_CSS)
 st.markdown(selected_theme_css, unsafe_allow_html=True)
 
 # --- Lógica para Limpar o Prompt (Executada no início do script) ---
-if st.session_state.get("clear_prompt_on_next_run", False):
-    st.session_state.nash_prompt = "" # Limpa o valor do estado
-    st.session_state.clear_prompt_on_next_run = False # Reseta a flag
+# This is now implicitly handled by setting st.session_state.current_prompt = ""
+# after a successful transmission, if needed. Let's remove the explicit flag.
+# The `value=st.session_state.current_prompt` in text_area handles it.
 
 # --- Status do Backend ---
 current_backend_status = check_backend_status()
@@ -520,11 +623,12 @@ motivations = [
     "Probabilidade de sucesso: Calculando... Não entre em pânico."
 ]
 uptime_delta = datetime.now() - st.session_state.start_time
+# Format uptime nicely (HH:MM:SS)
 uptime_str = str(timedelta(seconds=int(uptime_delta.total_seconds())))
 ascii_art = f"""
-> Status: { ('Operacional' if current_backend_status.startswith('ONLINE') else 'Parcial') if st.session_state.ok else 'Bloqueado'} | Humor: Sarcástico IV
-> Temp. Núcleo: Nominal | Matriz Lógica: Ativa
-> Missão: Dominar o Universo | Diretriz: Sobreviver
+> Status: <b>{ ('Operacional' if current_backend_status.startswith('ONLINE') else 'Parcial') if st.session_state.ok else 'Bloqueado'}</b> | Humor: Sarcástico IV
+> Temp. Núcleo: <b>Nominal</b> | Matriz Lógica: Ativa
+> Missão: <b>Dominar o Universo</b> | Diretriz: Sobreviver
 """.strip()
 safe_ascii_art = escape_html(ascii_art)
 # Re-apply <b> tags after escaping other HTML
@@ -602,9 +706,12 @@ if not st.session_state.ok:
                 button_placeholder.empty() # Ensure button placeholder is cleared if rerun happens later
                 loading_placeholder_login.empty()
             else:
-                 error_detail = r.json().get("error", f"Status {r.status_code}") if r.content else f"Status {r.status_code}"
+                 # Try to get error detail from backend response
+                 try:
+                     error_detail = r.json().get("error", f"Status {r.status_code}")
+                 except (ValueError, requests.exceptions.JSONDecodeError):
+                     error_detail = f"Status {r.status_code}, Resposta não-JSON: {r.text[:100]}"
                  st.error(f"Falha na autenticação: {escape_html(error_detail)}")
-
 
         except requests.exceptions.RequestException as e:
             st.error(f"Erro de rede durante a autenticação: {e}")
@@ -649,7 +756,13 @@ with st.sidebar:
     st.markdown("### 📡 Uplink de Dados")
     uploaded = st.file_uploader(
         "📎 Anexar Arquivo ao Próximo Comando",
-        type=[ "jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "svg", "py", "txt", "md", "json", "csv", "pdf", "log", "sh", "yaml", "toml", "mp3", "wav", "ogg", "mp4", "mov", "avi"],
+        type=[ # Expanded list
+            "jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "svg",
+            "py", "txt", "md", "json", "csv", "pdf", "log", "sh", "yaml", "toml", "html", "css", "js",
+            "mp3", "wav", "ogg", "flac",
+            "mp4", "mov", "avi", "mkv",
+            "doc", "docx", "xls", "xlsx", "ppt", "pptx", "rtf"
+            ],
         key="file_uploader", # Keep key consistent
         label_visibility="visible",
         help="Faça o upload de um arquivo que Nash possa analisar junto com seu próximo comando."
@@ -666,9 +779,7 @@ with st.sidebar:
                     r = requests.post(f"{BACKEND_URL}/upload", files=files, timeout=REQUEST_TIMEOUT)
                 if r.status_code == 200:
                     st.session_state.uploaded_file_info = uploaded.name # Store only name for simplicity
-                    upload_status_placeholder.success(f"🛰️ '{escape_html(uploaded.name)}' recebido!")
-                    # Optionally clear the uploader widget state if desired, though Streamlit usually handles this
-                    # st.session_state.file_uploader = None # Might cause issues if user interacts elsewhere
+                    upload_status_placeholder.success(f"🛰️ '{escape_html(uploaded.name)}' recebido! Será incluído no próximo comando.")
                 else:
                     st.session_state.uploaded_file_info = None
                     upload_status_placeholder.error(f"Falha no upload ({r.status_code}): {escape_html(r.text)}")
@@ -681,8 +792,6 @@ with st.sidebar:
             except Exception as e:
                 st.session_state.uploaded_file_info = None
                 upload_status_placeholder.error(f"Erro inesperado no upload: {e}")
-        #else: # If same file is still selected, just show the info message
-        #    upload_status_placeholder.info(f"Pronto para anexar: `{escape_html(st.session_state.uploaded_file_info)}`")
 
     # If uploader is cleared (no file selected), reset state
     elif uploaded is None and st.session_state.uploaded_file_info:
@@ -702,8 +811,23 @@ with st.sidebar:
          st.session_state.eli_msg_count = 0
          st.session_state.nash_msg_count = 0
          st.session_state.uploaded_file_info = None # Clear uploaded file info on session clear
+         st.session_state.current_prompt = "" # Clear prompt area too
          st.toast("🧹 Log da sessão limpo!", icon="✨")
          st.rerun()
+
+    # --- Export Button ---
+    if st.session_state.nash_history:
+        export_data = format_history_for_export(st.session_state.nash_history)
+        current_time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        st.download_button(
+            label="📄 Exportar Chat (.md)",
+            data=export_data,
+            file_name=f"nash_chatlog_{current_time_str}.md",
+            mime="text/markdown",
+            use_container_width=True,
+            help="Baixar o histórico completo desta sessão como um arquivo Markdown."
+        )
+
     st.markdown("---", unsafe_allow_html=True)
 
     st.markdown("### 🧠 Perfil Núcleo Nash")
@@ -722,24 +846,120 @@ with st.sidebar:
 
 # --- Área Principal de Chat ---
 st.markdown("### 🎙️ Console de Comando — Nash AI")
-# Retrieve value from state, which might have been cleared at the script start
-prompt_value = st.session_state.get("nash_prompt", "")
-prompt = st.text_area(
-    "Insira comando ou consulta para Nash:",
-    key="nash_prompt_widget", # Use a different key for the widget itself
-    height=110,
-    placeholder="Digite seu comando aqui, Capitão...",
-    value=prompt_value, # Value comes from state
-    # Update the session state when the text area changes
-    on_change=lambda: st.session_state.update(nash_prompt=st.session_state.nash_prompt_widget)
-)
 
-# --- Indicador de Loading ---
-loading_placeholder_main = st.empty()
-if st.session_state.waiting_for_nash and st.session_state.ok: # Only show loading if logged in
-    loading_placeholder_main.markdown("<div class='loading-indicator'>Nash está processando seu comando...</div>", unsafe_allow_html=True)
+# Use a container for the input area + button for better layout control if needed
+input_area = st.container()
+with input_area:
+    # Update session state variable directly when text_area changes
+    st.text_area(
+        "Insira comando ou consulta para Nash:",
+        key="nash_prompt_widget", # Unique key for the widget
+        height=110,
+        placeholder="Digite seu comando aqui, Capitão...",
+        value=st.session_state.current_prompt, # Bind value to session state
+        on_change=lambda: st.session_state.update(current_prompt=st.session_state.nash_prompt_widget) # Update state on change
+    )
+    # Display character count
+    char_count = len(st.session_state.current_prompt)
+    st.markdown(f"<div class='char-counter'>{char_count} caracteres</div>", unsafe_allow_html=True)
+
+    # --- Enviar Mensagem Button ---
+    if st.button("Transmitir para Nash 🚀", key="chat_btn", disabled=st.session_state.waiting_for_nash or not st.session_state.ok):
+        prompt_to_send = st.session_state.current_prompt
+        if prompt_to_send:
+            # Add message to history with timestamp
+            st.session_state.nash_history.append(("Eli", prompt_to_send, datetime.now()))
+            st.session_state.eli_msg_count += 1
+            st.session_state.waiting_for_nash = True
+            st.session_state.current_prompt = "" # Clear input area AFTER getting value
+            st.session_state.scroll_to_bottom = True # Signal to scroll
+            st.session_state.prompt_to_regenerate = None # Clear regenerate flag if user sends new prompt
+            st.rerun() # Rerun starts new cycle
+        else:
+            st.warning("Não posso transmitir um comando vazio, Eli.")
+            st.session_state.waiting_for_nash = False
+
+
+# --- Lógica de Comunicação com Backend ---
+prompt_for_backend = None
+is_regenerating = False
+
+if st.session_state.waiting_for_nash and st.session_state.ok:
+    # Check if we are regenerating
+    if st.session_state.prompt_to_regenerate:
+        prompt_for_backend = st.session_state.prompt_to_regenerate
+        is_regenerating = True
+        st.session_state.prompt_to_regenerate = None # Consume the flag
+    # Otherwise, get the last Eli prompt from history
+    elif st.session_state.nash_history and st.session_state.nash_history[-1][0] == "Eli":
+         prompt_for_backend = st.session_state.nash_history[-1][1]
+    else:
+        # Should not happen if button logic is correct, but handle defensively
+        st.warning("Erro interno: Não foi possível encontrar o último comando de Eli.")
+        st.session_state.waiting_for_nash = False
+        st.rerun() # Rerun to clear state
+
+    # --- Display Loading Indicator (Improved) ---
+    loading_placeholder_main = st.empty()
+    if prompt_for_backend:
+        truncated_prompt = prompt_for_backend[:MAX_PROMPT_DISPLAY_LEN]
+        if len(prompt_for_backend) > MAX_PROMPT_DISPLAY_LEN:
+            truncated_prompt += "..."
+        loading_text = f"Nash está processando: <span>'{escape_html(truncated_prompt)}'</span>"
+        loading_placeholder_main.markdown(f"<div class='loading-indicator'>{loading_text}</div>", unsafe_allow_html=True)
+
+    # --- Call Backend ---
+    if prompt_for_backend:
+        try:
+            payload = {"prompt": prompt_for_backend, "session_id": "eli"} # Assuming session_id is static
+            # Include file info if present (even during regeneration if relevant)
+            if st.session_state.uploaded_file_info:
+                payload["attachment_info"] = {"filename": st.session_state.uploaded_file_info}
+
+            req = requests.post(f"{BACKEND_URL}/chat", json=payload, timeout=REQUEST_TIMEOUT)
+
+            if req.status_code == 200:
+                resp = req.json().get("response", "Nash parece estar sem palavras…")
+                # Add Nash's response with timestamp
+                st.session_state.nash_history.append(("Nash", resp, datetime.now()))
+                st.session_state.nash_msg_count += 1
+            else:
+                # Try to get detailed error message
+                try:
+                    error_payload = req.json().get("error", req.text)
+                except (ValueError, requests.exceptions.JSONDecodeError): # If response is not JSON
+                    error_payload = req.text
+                error_msg = f"[Erro {req.status_code} do Backend: {escape_html(str(error_payload)[:150])}]" # Limit length
+                st.session_state.nash_history.append(("Nash", error_msg, datetime.now())) # Still log error as Nash msg
+                st.session_state.nash_msg_count += 1
+                st.error(f"Erro ao comunicar com Nash — código {req.status_code}.")
+
+        except requests.exceptions.Timeout:
+            error_msg = "[Erro Cliente: Timeout na resposta de Nash]"
+            st.session_state.nash_history.append(("Nash", error_msg, datetime.now()))
+            st.session_state.nash_msg_count += 1
+            st.error("Requisição para Nash expirou (timeout).")
+        except requests.exceptions.RequestException as e:
+            error_msg = f"[Erro Cliente: Rede - {escape_html(str(e))}]"
+            st.session_state.nash_history.append(("Nash", error_msg, datetime.now()))
+            st.session_state.nash_msg_count += 1
+            st.error(f"Erro de rede ao contactar Nash: {e}")
+        except Exception as e:
+            error_msg = f"[Erro Cliente: Inesperado - {escape_html(str(e))}]"
+            st.session_state.nash_history.append(("Nash", error_msg, datetime.now()))
+            st.session_state.nash_msg_count += 1
+            st.error(f"Ocorreu um erro inesperado na comunicação local: {e}")
+        finally:
+            st.session_state.waiting_for_nash = False
+            # Clear file only after successful processing associated with a prompt
+            if not is_regenerating: # Don't clear file on regenerate unless you re-upload
+                 st.session_state.uploaded_file_info = None
+            st.session_state.scroll_to_bottom = True # Signal to scroll
+            loading_placeholder_main.empty() # Clear loading indicator
+            st.rerun() # Rerun to display Nash's response
 
 # --- Efeito de Typing ---
+# (Keep the nash_typing function as defined in the previous response - it's needed for history display)
 def nash_typing(plain_text, target_placeholder, message_class):
     """Renderiza texto simples com efeito de digitação, escapando HTML corretamente."""
     full_render = ""
@@ -747,135 +967,33 @@ def nash_typing(plain_text, target_placeholder, message_class):
     try:
         for line_index, line in enumerate(lines):
             line_output = ""
-            # Strip leading/trailing whitespace from line for processing
-            processed_line = line.strip()
-            if not processed_line and line_index < len(lines) - 1: # Handle empty lines between paragraphs
-                full_render += "\n" # Add the newline back
-                continue # Skip typing effect for empty lines
+            processed_line = line.strip() # Process lines for typing
+            if not processed_line and line_index < len(lines) - 1: # Handle empty lines
+                full_render += "\n"
+                # Render the state including the blank line immediately
+                full_render_escaped = escape_html(full_render)
+                target_placeholder.markdown(f"<span class='{message_class}' style='white-space: pre-wrap;'>{full_render_escaped}</span>", unsafe_allow_html=True)
+                time.sleep(0.1) # Small pause for blank lines
+                continue
 
             for char_index, char in enumerate(processed_line):
                 line_output += char
-                cursor = "█" # Keep cursor until the very end
-                # Escape the current content + add cursor before rendering
+                cursor = "█" # Keep cursor visible during typing
                 current_render_escaped = escape_html(full_render + line_output) + cursor
-                target_placeholder.markdown(f"<span class='{message_class}'>{current_render_escaped}</span>", unsafe_allow_html=True)
-                # Adjust delay based on character
+                target_placeholder.markdown(f"<span class='{message_class}' style='white-space: pre-wrap;'>{current_render_escaped}</span>", unsafe_allow_html=True)
                 delay = 0.005 if char == ' ' else (0.04 if char in ['.', ',', '!', '?'] else 0.015)
                 time.sleep(delay)
 
-            # Append the completed line (with newline if not the last line)
             full_render += processed_line + ("\n" if line_index < len(lines) - 1 else "")
-            # Render the complete line without cursor before potential sleep
-            full_render_escaped = escape_html(full_render)
-            target_placeholder.markdown(f"<span class='{message_class}'>{full_render_escaped}</span>", unsafe_allow_html=True)
-            # Pause slightly between lines if it wasn't an empty line originally
-            if line and line_index < len(lines) - 1: time.sleep(0.08)
-
-        # Final render without cursor (already done in the loop's last step)
+            full_render_escaped = escape_html(full_render) # Render without cursor after line is done
+            target_placeholder.markdown(f"<span class='{message_class}' style='white-space: pre-wrap;'>{full_render_escaped}</span>", unsafe_allow_html=True)
+            if line and line_index < len(lines) - 1: time.sleep(0.08) # Pause between non-empty lines
 
     except Exception as e:
-        # Fallback in case of error during typing
-        safe_msg = escape_html(plain_text)
-        target_placeholder.markdown(f"<span class='{message_class}'>[Erro typing] {safe_msg}</span>", unsafe_allow_html=True)
+        safe_msg = escape_html(plain_text) # Fallback display
+        target_placeholder.markdown(f"<span class='{message_class}' style='white-space: pre-wrap;'>[Erro typing] {safe_msg}</span>", unsafe_allow_html=True)
         print(f"Erro durante nash_typing: {e}")
 
-
-# --- Enviar Mensagem ---
-transmit_button_placeholder = st.empty()
-# Use the value from session state ('nash_prompt') which is updated by the text_area's on_change
-current_prompt = st.session_state.get("nash_prompt", "")
-
-if transmit_button_placeholder.button("Transmitir para Nash 🚀", key="chat_btn", disabled=st.session_state.waiting_for_nash or not st.session_state.ok):
-    if current_prompt:
-        st.session_state.nash_history.append(("Eli", current_prompt))
-        st.session_state.eli_msg_count += 1
-        st.session_state.waiting_for_nash = True
-        st.session_state.clear_prompt_on_next_run = True # Signal to clear ON NEXT rerun
-        # Do NOT clear st.session_state.nash_prompt here
-        loading_placeholder_main.empty() # Clear potential previous loading message
-        transmit_button_placeholder.empty() # Clear the button
-        st.rerun() # Rerun starts new cycle where flag will be read & backend called
-    else:
-        st.warning("Não posso transmitir um comando vazio, Eli.")
-        # Ensure waiting state is false if prompt was empty
-        st.session_state.waiting_for_nash = False
-
-# --- Lógica de Comunicação com Backend ---
-# This block runs *after* the rerun triggered by the transmit button
-if st.session_state.waiting_for_nash and st.session_state.ok:
-    last_eli_prompt = ""
-    # Find the last message from Eli to send to the backend
-    for sender, msg_text in reversed(st.session_state.nash_history):
-        if sender == "Eli":
-            last_eli_prompt = msg_text
-            break
-
-    if last_eli_prompt:
-        try:
-            payload = {"prompt": last_eli_prompt, "session_id": "eli"} # Assuming session_id is static for now
-            # Include file info if present
-            if st.session_state.uploaded_file_info:
-                payload["attachment_info"] = {"filename": st.session_state.uploaded_file_info} # Send metadata
-                # File data was already sent via /upload
-
-            req = requests.post(f"{BACKEND_URL}/chat", json=payload, timeout=REQUEST_TIMEOUT)
-
-            if req.status_code == 200:
-                resp = req.json().get("response", "Nash parece estar sem palavras…")
-                st.session_state.nash_history.append(("Nash", resp))
-                st.session_state.nash_msg_count += 1
-            else:
-                # Try to get error message from JSON payload, otherwise use text
-                try:
-                    error_payload = req.json().get("error", req.text)
-                except ValueError: # If response is not JSON
-                    error_payload = req.text
-                error_msg = f"[Erro {req.status_code} do Backend: {escape_html(str(error_payload)[:150])}]" # Limit length
-                st.session_state.nash_history.append(("Nash", error_msg))
-                st.session_state.nash_msg_count += 1
-                st.error(f"Erro ao comunicar com Nash — código {req.status_code}.")
-
-        except requests.exceptions.Timeout:
-            st.session_state.nash_history.append(("Nash", "[Erro Cliente: Timeout na resposta de Nash]"))
-            st.session_state.nash_msg_count += 1
-            st.error("Requisição para Nash expirou (timeout).")
-        except requests.exceptions.RequestException as e:
-            st.session_state.nash_history.append(("Nash", f"[Erro Cliente: Rede - {escape_html(str(e))}]"))
-            st.session_state.nash_msg_count += 1
-            st.error(f"Erro de rede ao contactar Nash: {e}")
-        except Exception as e:
-            st.session_state.nash_history.append(("Nash", f"[Erro Cliente: Inesperado - {escape_html(str(e))}]"))
-            st.session_state.nash_msg_count += 1
-            st.error(f"Ocorreu um erro inesperado na comunicação local: {e}")
-        finally:
-            st.session_state.waiting_for_nash = False
-            st.session_state.uploaded_file_info = None # Clear file after it's been processed (sent with prompt)
-            # Rerun to display Nash's response and potentially clear the prompt (due to flag)
-            st.rerun()
-    else:
-        # Should not happen if button logic is correct, but handle defensively
-        st.warning("Erro interno: Não foi possível encontrar o último comando de Eli.")
-        st.session_state.waiting_for_nash = False
-        st.rerun()
-
-
-# --- Easter Eggs ---
-if not st.session_state.waiting_for_nash and st.session_state.nash_history:
-    last_entry = st.session_state.nash_history[-1]
-    if last_entry[0] == 'Eli':
-        last_prompt = last_entry[1].lower()
-        if "data estelar" in last_prompt or ("data" in last_prompt and any(sub in last_prompt for sub in ["hoje", "agora", "hora"])):
-            now_dt = datetime.now()
-            # Attempt to get timezone - may vary by system
-            try:
-                 tz_name = now_dt.astimezone().tzname()
-                 now_str = now_dt.strftime(f"%Y-%m-%d %H:%M:%S {tz_name}")
-            except: # Fallback if timezone fails
-                 now_str = now_dt.strftime("%Y-%m-%d %H:%M:%S")
-            st.toast(f"🕒 Data Estelar (Cliente): {now_str}", icon="🕰️")
-        if "auto destruir" in last_prompt or "autodestruir" in last_prompt:
-            st.warning("🚨 Sequência de auto-destruição iniciada... Brincadeirinha.")
-            st.snow()
 
 # --- Exibir Histórico de Chat ---
 if st.session_state.nash_history:
@@ -885,83 +1003,131 @@ if st.session_state.nash_history:
 
     with history_container:
         last_message_index = len(st.session_state.nash_history) - 1
-        for i, (who, msg) in enumerate(st.session_state.nash_history):
+        # Iterate through history (who, msg, timestamp)
+        for i, (who, msg, ts) in enumerate(st.session_state.nash_history):
             avatar_class = "avatar-nash" if who == "Nash" else "avatar-eli"
             message_class = "message-nash" if who == "Nash" else "message-eli"
             avatar_icon = "👨‍🚀" if who == "Nash" else "🧑‍🚀" # Eli gets a different emoji
+            timestamp_str = ts.strftime('%H:%M:%S') # Format timestamp HH:MM:SS
 
             col1, col2 = st.columns([1, 15], gap="small")
 
+            # Column 1: Avatar, Name, Timestamp
             with col1:
-                 # Display avatar icon
+                 st.markdown(f"<div class='avatar-container'>", unsafe_allow_html=True)
                  st.markdown(f"<span class='{avatar_class}'>{avatar_icon}</span>", unsafe_allow_html=True)
-                 # Display name below icon
-                 st.markdown(f"<span class='{avatar_class}' style='font-size: 0.9em; display: block; margin-top: -5px;'>{who}:</span>", unsafe_allow_html=True)
+                 st.markdown(f"<span class='avatar-name {avatar_class}'>{who}:</span>", unsafe_allow_html=True)
+                 st.markdown(f"<span class='message-timestamp'>{timestamp_str}</span>", unsafe_allow_html=True)
+                 st.markdown(f"</div>", unsafe_allow_html=True)
 
-            # ================== START: CORRECTED MESSAGE RENDERING LOGIC ==================
+            # Column 2: Message Content and Regenerate Button
             with col2:
                 is_last_message = (i == last_message_index)
-                # Apply typing only to the very last message from Nash when not waiting for a new response
-                apply_typing = (who == "Nash" and is_last_message and not st.session_state.waiting_for_nash)
+                apply_typing = (who == "Nash" and is_last_message and not st.session_state.waiting_for_nash and not st.session_state.prompt_to_regenerate)
 
-                # Regex to find ```lang\ncode\n``` or ```code``` blocks
-                code_pattern = re.compile(r"```(\w+)?\s*\n(.*?)\n```|```(.*?)```", re.DOTALL)
-                last_end = 0
-                message_parts = [] # Store parts to render sequentially
+                # Use a container to allow placing button next to the message content
+                msg_content_container = st.container()
+                with msg_content_container:
+                    # Regex to find ```lang\ncode\n``` or ```code``` blocks
+                    code_pattern = re.compile(r"```(\w+)?\s*\n(.*?)\n```|```(.*?)```", re.DOTALL)
+                    last_end = 0
+                    message_parts = [] # Store parts to render sequentially
 
-                # 1. Split message into text and code parts
-                for match in code_pattern.finditer(msg):
-                    start, end = match.span()
-                    # Text before the code block
-                    text_before = msg[last_end:start]
-                    if text_before:
-                         message_parts.append({"type": "text", "content": text_before})
+                    # 1. Split message into text and code parts
+                    for match in code_pattern.finditer(msg):
+                        start, end = match.span()
+                        text_before = msg[last_end:start]
+                        if text_before: message_parts.append({"type": "text", "content": text_before})
+                        lang = match.group(1); code = match.group(2)
+                        if code is None: code = match.group(3); lang = None
+                        if code is not None: message_parts.append({"type": "code", "content": str(code), "lang": lang})
+                        last_end = end
+                    text_after = msg[last_end:]
+                    if text_after: message_parts.append({"type": "text", "content": text_after})
 
-                    # Code block
-                    lang = match.group(1) # Lang from ```lang\ncode\n```
-                    code = match.group(2) # Code from ```lang\ncode\n```
-                    if code is None: # Matched ```code``` variation
-                        code = match.group(3)
-                        lang = None # No language specified in this format
-                    if code is not None: # Ensure code content exists
-                         message_parts.append({"type": "code", "content": str(code), "lang": lang}) # Ensure code is string
+                    # 2. Render the parts sequentially
+                    # Wrap message content in a div to align button next to it
+                    st.markdown("<div class='message-container'>", unsafe_allow_html=True)
+                    for part_idx, part in enumerate(message_parts):
+                        if part["type"] == "text":
+                            content = part["content"]
+                            if content.strip(): # Only render if not just whitespace
+                                if apply_typing:
+                                    typing_placeholder = st.empty()
+                                    nash_typing(content, typing_placeholder, message_class)
+                                else:
+                                    st.markdown(f"<span class='{message_class}' style='white-space: pre-wrap;'>{escape_html(content)}</span>", unsafe_allow_html=True)
+                            # Render whitespace for structure if it exists and isn't the only content
+                            elif content and len(message_parts) > 1:
+                                st.markdown(f"<span class='{message_class}' style='white-space: pre-wrap; display: block; min-height: 1em;'></span>", unsafe_allow_html=True)
+                        elif part["type"] == "code":
+                            st.code(part["content"], language=part["lang"].lower() if part["lang"] else None)
 
-                    last_end = end
+                    # --- Regenerate Button Logic ---
+                    if who == "Nash" and is_last_message and not st.session_state.waiting_for_nash:
+                        # Find the previous Eli prompt to regenerate from
+                        eli_prompt_to_regen = None
+                        if i > 0 and st.session_state.nash_history[i-1][0] == "Eli":
+                            eli_prompt_to_regen = st.session_state.nash_history[i-1][1]
 
-                # Text after the last code block (or the whole message if no blocks)
-                text_after = msg[last_end:]
-                if text_after:
-                    message_parts.append({"type": "text", "content": text_after})
+                        if eli_prompt_to_regen:
+                             # Use a unique key based on the message index
+                             regen_button_key = f"regen_{i}"
+                             if st.button("🔄", key=regen_button_key, help="Regenerar esta resposta", type="secondary"):
+                                 st.session_state.prompt_to_regenerate = eli_prompt_to_regen
+                                 st.session_state.waiting_for_nash = True
+                                 st.session_state.scroll_to_bottom = True
+                                 # Clear the current Nash message that is being regenerated? Optional.
+                                 # st.session_state.nash_history.pop()
+                                 st.rerun()
 
-                # 2. Render the parts sequentially
-                for part in message_parts:
-                    if part["type"] == "text":
-                        content = part["content"] # Keep original spacing for typing/rendering
-                        # Check if content is not just whitespace before rendering
-                        if content.strip():
-                            if apply_typing:
-                                typing_placeholder = st.empty() # Create placeholder just for this text part
-                                nash_typing(content, typing_placeholder, message_class)
-                            else:
-                                # Render normally using markdown with escaped HTML
-                                # Preserve whitespace using style="white-space: pre-wrap;"
-                                st.markdown(f"<span class='{message_class}' style='white-space: pre-wrap;'>{escape_html(content)}</span>", unsafe_allow_html=True)
-                        # If the original content was just whitespace (like a newline), render it to maintain structure
-                        elif content:
-                            st.markdown(f"<span class='{message_class}' style='white-space: pre-wrap; display: block; height: 1em;'></span>", unsafe_allow_html=True) # Render newline as space
+                    st.markdown("</div>", unsafe_allow_html=True) # Close message-container div
 
-                    elif part["type"] == "code":
-                        # Render code blocks using st.code
-                        st.code(part["content"], language=part["lang"].lower() if part["lang"] else None)
-
-                # The redundant 'if not has_code_blocks:' logic is now removed.
-            # =================== END: CORRECTED MESSAGE RENDERING LOGIC ===================
-
-            # Add a separator between messages, but not after the very last one
+            # Add a separator between messages
             if i < last_message_index:
                 st.markdown("<hr>", unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True) # Close nash-history div
 
-elif not st.session_state.waiting_for_nash and st.session_state.ok: # Only show if logged in
+# Display initial message if history is empty and logged in
+elif not st.session_state.waiting_for_nash and st.session_state.ok:
     st.markdown("> *Console aguardando o primeiro comando...*")
+
+
+# --- Easter Eggs (Keep as is or modify) ---
+# (Included from previous version, check if still relevant/desired)
+# if not st.session_state.waiting_for_nash and st.session_state.nash_history:
+#    last_entry = st.session_state.nash_history[-1]
+#    if last_entry[0] == 'Eli':
+#        last_prompt = last_entry[1].lower()
+#        if "data estelar" in last_prompt or ("data" in last_prompt and any(sub in last_prompt for sub in ["hoje", "agora", "hora"])):
+#            # ... (toast logic) ...
+#        if "auto destruir" in last_prompt or "autodestruir" in last_prompt:
+#            # ... (snow logic) ...
+
+
+# --- Auto-Scroll Logic ---
+# Must be placed at the very end of the script execution
+if st.session_state.get("scroll_to_bottom", False):
+    # JavaScript to scroll the main chat container to the bottom
+    # Using time.time() helps ensure the script runs reliably on reruns
+    js = f"""
+    <script>
+        function scroll(dummy_var_to_force_reexecution){{
+            // Target the main block container of Streamlit's structure
+            var main_block = window.parent.document.querySelector('section.main > div.block-container');
+            if (main_block) {{
+                window.scrollTo(0, main_block.scrollHeight);
+            }} else {{
+                // Fallback for older/different Streamlit versions
+                window.scrollTo(0, window.parent.document.body.scrollHeight);
+            }}
+        }}
+        // Use setTimeout to ensure rendering is complete before scrolling
+        setTimeout(scroll, 150, {time.time()});
+    </script>
+    """
+    st.components.v1.html(js, height=0, scrolling=False)
+    st.session_state.scroll_to_bottom = False # Reset the flag
+
+# --- END OF FILE nash_ui.py ---
