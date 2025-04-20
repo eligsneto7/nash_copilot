@@ -23,7 +23,7 @@ OPENAI_KEY     = os.getenv("OPENAI_API_KEY")
 PINECONE_KEY   = os.getenv("PINECONE_API_KEY")
 PINECONE_INDEX = os.getenv("PINECONE_INDEX_NAME")
 NASH_PASSWORD  = os.getenv("NASH_PASSWORD", "889988")
-OPENAI_MODEL   = os.getenv("OPENAI_MODEL", "03")
+OPENAI_MODEL   = os.getenv("OPENAI_MODEL", "o3")
 
 init_openai(OPENAI_KEY)
 pinecone_index = init_pinecone(PINECONE_KEY, PINECONE_INDEX)
