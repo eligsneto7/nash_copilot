@@ -93,7 +93,7 @@ def chat():
         completion = client.chat.completions.create(
             model    = OPENAI_MODEL,
             messages = messages,
-            timeout  = 40,
+            timeout  = 300,
         )
         answer = completion.choices[0].message.content.strip()
     except Exception as e:
