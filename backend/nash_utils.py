@@ -14,7 +14,7 @@ def init_pinecone(api_key, index_name):
     return pc.Index(index_name)
 
 # --- Embeddings e Consultas GPT ---
-def create_embedding(text, model="o4-mini"):
+def create_embedding(text, model="o4-mini-high"):
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     completion = client.chat.completions.create(
         model=model,
