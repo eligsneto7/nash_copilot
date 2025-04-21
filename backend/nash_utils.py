@@ -3,61 +3,72 @@
 import os
 import hashlib
 from openai import OpenAI
+from pinecone import Pinecone
 
-def init_openai(api_key):
-    # Novo padrão OpenAI: normalmente só utilizado por convenção externa
+# --- Inicialização OpenAI & Pinecone ---
+def init_openai(api_key: str):
+    """Define a variável de ambiente para o cliente OpenAI."""
     os.environ["OPENAI_API_KEY"] = api_key
 
-def init_pinecone(api_key, index_name):
-    from pinecone import Pinecone
+def init_pinecone(api_key: str, index_name: str):
+    """Inicializa o client Pinecone e retorna o Index."""
     pc = Pinecone(api_key=api_key)
     return pc.Index(index_name)
 
-# --- Embeddings e Consultas GPT ---
-def create_embedding(text, model="o4-mini"):
+# --- Chat Completion (opcional) ---
+def create_chat_completion(messages: list, model: str = None) -> str:
+    """
+    Cria uma completion de chat usando o modelo definido em OPENAI_MODEL ou
+    um model passado diretamente.
+    """
+    model = model or os.getenv("OPENAI_MODEL", "o4-mini")
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    completion = client.chat.completions.create(
-        model=model,
-        messages=[{
-            "role": "system",
-            "content": (
-                "Você é Nash, um copiloto digital sci-fi, inteligente, sarcástico, "
-                "personalidade avançada, memoria evolutiva, para Eli, empresário e futurista."
-            )
-        }, {
-            "role": "user",
-            "content": text
-        }]
-    )
-    return completion.choices[0].message.content.strip()
+    resp = client.chat.completions.create(model=model, messages=messages)
+    return resp.choices[0].message.content.strip()
 
-def get_text_embedding(text, model="text-embedding-3-small"):
+# --- Embedding de Texto ---
+def get_text_embedding(text: str, model: str = None) -> list:
+    """
+    Gera embedding para o texto usando o modelo definido em OPENAI_EMBEDDING_MODEL
+    ou o padrão text-embedding-ada-002.
+    """
+    model = model or os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-ada-002")
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    response = client.embeddings.create(input=[text], model=model)
-    return response.data[0].embedding
+    resp = client.embeddings.create(input=[text], model=model)
+    return resp.data[0].embedding
 
 # --- Memória Vetorizada (Pinecone) ---
-def register_memory(pinecone_index, user_id, user_input, agent_response, tag="chat"):
+def register_memory(pinecone_index, user_id: str, user_input: str, agent_response: str, tag: str = "chat"):
+    """
+    Salva no Pinecone um vetor representando a interação (prompt + resposta).
+    """
     text = f"[{tag}] Prompt: {user_input}\nResposta Nash: {agent_response}"
     vec = get_text_embedding(user_input)
-    id_hash = hashlib.sha256((user_id + user_input).encode()).hexdigest()
+    id_hash = hashlib.sha256((user_id + user_input).encode("utf-8")).hexdigest()
     pinecone_index.upsert(vectors=[{
         "id": id_hash,
         "values": vec,
         "metadata": {"user_id": user_id, "text": text, "tag": tag}
     }])
 
-def fetch_relevant_memories(pinecone_index, user_input, top_k=4):
+def fetch_relevant_memories(pinecone_index, user_input: str, top_k: int = 4) -> list:
+    """
+    Recupera os top_k fragmentos de memória mais relevantes do Pinecone
+    para um dado input do usuário.
+    """
     vec = get_text_embedding(user_input)
     res = pinecone_index.query(vector=vec, top_k=top_k, include_metadata=True)
     results = []
-    for match in res['matches']:
-        text = match.get("metadata", {}).get("text", "")
-        results.append({"score": match.get("score", 0), "text": text})
+    for match in res.matches:
+        txt = match.metadata.get("text", "")
+        results.append({"score": match.score, "text": txt})
     return results
 
-# --- Logger/Contexto de Lore Inicial ---
-def nash_log(tag="ONBOARDING"):
+# --- Logger / Contexto de Onboarding ---
+def nash_log(tag: str = "ONBOARDING") -> str:
+    """
+    Lê e retorna o conteúdo de nash_memory_init.md como memória inicial.
+    """
     try:
         with open("nash_memory_init.md", "r", encoding="utf-8") as f:
             md = f.read()
@@ -65,9 +76,14 @@ def nash_log(tag="ONBOARDING"):
     except Exception as e:
         return f"[MEMÓRIA INICIAL INACESSÍVEL – {e}]"
 
-# --- Uploads (Validação de extensão) ---
-IMAGE_EXTS = {"aceito tudo"}
-CODE_EXTS = {"."}
-def ALLOWED_EXTENSIONS(filename):
-    fname = filename.lower()
-    return any(fname.endswith(ext) for ext in IMAGE_EXTS | CODE_EXTS)
+# --- Validação de Extensões para Uploads ---
+IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff", ".svg"}
+CODE_EXTS  = {".py", ".txt", ".md", ".json", ".csv", ".pdf"}
+
+def ALLOWED_EXTENSIONS(filename: str) -> bool:
+    """
+    Retorna True se o arquivo termina em uma das extensões permitidas
+    (imagem ou texto/código).
+    """
+    fn = filename.lower()
+    return any(fn.endswith(ext) for ext in IMAGE_EXTS | CODE_EXTS)

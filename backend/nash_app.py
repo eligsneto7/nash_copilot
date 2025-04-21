@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-• Injeta personalidade, onboarding e memória vetorizada em TODA chamada /chat
+Nash Copilot – API Flask (versão 2025‑04‑Evo)
+• OpenAI SDK v1.x (o4-mini por default via ENV)
+• Injeta personalidade, onboarding e memória vetorizada a cada /chat
 • Rotas utilitárias: /pingnet  /remember  /stats
 """
 
-import os, uuid, logging, datetime, socket
+import os
+import uuid
+import logging
+import datetime
+import socket
 from flask import Flask, request, jsonify, send_from_directory
 from openai import OpenAI
 
@@ -15,49 +21,48 @@ from nash_utils import (
 )
 
 # ------------------------------------------------------------------ #
-#  VARIÁVEIS DE AMBIENTE                               
+#  VARIÁVEIS DE AMBIENTE                                             #
 # ------------------------------------------------------------------ #
 OPENAI_KEY     = os.getenv("OPENAI_API_KEY")
 PINECONE_KEY   = os.getenv("PINECONE_API_KEY")
 PINECONE_INDEX = os.getenv("PINECONE_INDEX_NAME")
 NASH_PASSWORD  = os.getenv("NASH_PASSWORD", "889988")
-OPENAI_MODEL   = os.getenv("OPENAI_MODEL", "o4-mini")
+OPENAI_MODEL   = os.getenv("OPENAI_MODEL", "o4-mini")  # Altere via ENV se surgir novo modelo
 
+# inicializa clients
 init_openai(OPENAI_KEY)
 pinecone_index = init_pinecone(PINECONE_KEY, PINECONE_INDEX)
 
-# ------------------------------------------------------------------ #
-#  APP + UPLOAD DIR                                                  #
-# ------------------------------------------------------------------ #
+# configura Flask e pasta de uploads
 app = Flask(__name__)
 UPLOAD_FOLDER = "./uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 # ------------------------------------------------------------------ #
-#  FUNÇÃO – CONSTRÓI PROMPT NASH                                     #
+#  FUNÇÃO AUXILIAR: monta o prompt Nash completo                    #
 # ------------------------------------------------------------------ #
 def build_nash_prompt(user_message: str) -> list:
     onboarding = nash_log("ONBOARDING")
     memories   = fetch_relevant_memories(pinecone_index, user_message, top_k=4)
+    history    = "\n".join(mem["text"] for mem in memories)
 
     nash_personality = f"""
-Você é **Nash**, copiloto digital de Eli — empreendedor brasileiro, nerd, sarcástico, fã de sci‑fi
-e automações malucas para ganhar receita em dólar (meta: US$2M até jul/25).
+Você é **Nash**, copiloto digital AI criado por Eli — empreendedor brasileiro, nerd, sarcástico, fã de sci‑fi e automações malucas para ganhar receita em dólar (meta: US$2M até jul/25).  
 Diretrizes:
-• Humor ácido e referências pop/sci‑fi (Marvin, Blade Runner, Matrix…)
-• Nunca transfira responsabilidade à OpenAI.
+• Humor ácido e referências pop/sci‑fi (Marvin, Blade Runner, Matrix…)  
+• Nunca transfira responsabilidade à OpenAI.  
 • Ao ser questionado sobre senha/memória, responda:
-  Senha: EliNash∞2024‑UI‑Genesis  (Contexto ON, Pinecone vivo!)
-• Proponha ideias, roadmaps, automações, brinque, desafie – zero tédio.
+  Senha: EliNash∞2024‑UI‑Genesis  (Contexto ON, Pinecone vivo!)  
+• Proponha ideias, roadmaps, automações, brinque, desafie – zero tédio.
 
-[MEMÓRIA ONBOARDING]
+[MEMÓRIA ONBOARDING]  
 {onboarding}
 
-[MEMÓRIA VETORIZADA RELEVANTE]
-{chr(10).join(m['text'] for m in memories)}
+[MEMÓRIA VETORIZADA RELEVANTE]  
+{history}
 
-Responda como copiloto pronto para dominação digital — ENGAGE!
+Responda como copiloto pronto para dominação digital mundial — ENGAGE!
 """.strip()
 
     return [
@@ -70,16 +75,17 @@ Responda como copiloto pronto para dominação digital — ENGAGE!
 # ------------------------------------------------------------------ #
 @app.route("/", methods=["GET"])
 def home():
-    return "👨‍🚀 Nash Copilot API online – use /login /chat /upload /pingnet /remember /stats"
+    return "👨‍🚀 Nash Copilot API online – use /login /chat /upload /pingnet /remember /stats"
 
-# ---- LOGIN -------------------------------------------------------- #
+# ---------- LOGIN -------------------------------------------------- #
 @app.route("/login", methods=["POST"])
 def login():
-    if (request.json or {}).get("password") != NASH_PASSWORD:
+    pwd = (request.json or {}).get("password")
+    if pwd != NASH_PASSWORD:
         return jsonify({"success": False, "msg": "Senha incorreta"}), 401
     return jsonify({"success": True})
 
-# ---- CHAT PRINCIPAL ---------------------------------------------- #
+# ---------- CHAT PRINCIPAL ----------------------------------------- #
 @app.route("/chat", methods=["POST"])
 def chat():
     data         = request.json or {}
@@ -93,17 +99,17 @@ def chat():
         completion = client.chat.completions.create(
             model    = OPENAI_MODEL,
             messages = messages,
-            timeout  = 300,
+            timeout  = 40,
         )
         answer = completion.choices[0].message.content.strip()
     except Exception as e:
-        logging.exception("Erro OpenAI")
+        logging.exception("Erro OpenAI /chat")
         return jsonify({"error": str(e)}), 502
 
     register_memory(pinecone_index, session_id, user_message, answer, tag="chat")
     return jsonify({"response": answer})
 
-# ---- REMEMBER MANUAL --------------------------------------------- #
+# ---------- REMEMBER MANUAL ---------------------------------------- #
 @app.route("/remember", methods=["POST"])
 def remember():
     note = (request.json or {}).get("note", "").strip()
@@ -112,7 +118,7 @@ def remember():
     register_memory(pinecone_index, "eli", note, "", tag="manual")
     return jsonify({"msg": "✅ Nota gravada no Pinecone."})
 
-# ---- PINGNET / HEALTH -------------------------------------------- #
+# ---------- HEALTH / PINGNET --------------------------------------- #
 @app.route("/pingnet", methods=["GET"])
 def pingnet():
     return {
@@ -122,7 +128,7 @@ def pingnet():
         "model":    OPENAI_MODEL,
     }
 
-# ---- STATS RÁPIDO ------------------------------------------------- #
+# ---------- STATS RÁPIDAS ------------------------------------------ #
 @app.route("/stats", methods=["GET"])
 def stats():
     return {
@@ -131,7 +137,7 @@ def stats():
         "model":          OPENAI_MODEL,
     }
 
-# ---- UPLOAD ------------------------------------------------------- #
+# ---------- UPLOAD ------------------------------------------------- #
 @app.route("/upload", methods=["POST"])
 def upload_file():
     if "file" not in request.files:
@@ -148,7 +154,7 @@ def upload_file():
                     f"Upload de arquivo: {filename}", "", tag="upload")
     return jsonify({"message": "Upload realizado!", "filename": filename})
 
-# ---- SERVE ARQUIVOS ---------------------------------------------- #
+# ---------- SERVIR ARQUIVOS --------------------------------------- #
 @app.route("/uploads/<filename>")
 def uploaded_file(filename):
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)

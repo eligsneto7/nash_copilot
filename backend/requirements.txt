@@ -1,56 +1,20 @@
-########## CORE ##########
+# ─── CORE (API Nash) ─────────────────────────────────────────────
 flask>=2.3
-gunicorn>=21
-openai>=1.13          # SDK novo
+gunicorn>=21.0.0
+openai>=1.13
 pinecone>=3.0
 python-dotenv>=1.0
 requests>=2.32
-tiktoken>=0.7
+tiktoken>=0.7              # opcional, bom para controle de tokens
 
-########## WEB / SCRAPING ##########
-beautifulsoup4>=4.12
-html5lib>=1.1
-feedparser>=6.0
-playwright>=1.43
-aiohttp>=3.9
-httpx>=0.27
+# ─── AUTONOMIA & SCHEDULING ──────────────────────────────────────
+apscheduler>=3.10          # cron interno (self‑review, jobs periódicos)
 
-########## DATA / ML / IA LOCAL ##########
-pandas>=2.2
-numpy>=1.26
-scikit-learn>=1.4
-sentence-transformers>=2.6
-transformers>=4.40
-huggingface-hub>=0.22
+# ─── GIT & GITHUB INTEGRAÇÃO ────────────────────────────────────
+GitPython>=3.1             # manipular repositório localmente
+PyGithub>=1.59             # acesso à API GitHub (PRs, issues, commits)
 
-########## BANCOS / CACHE ##########
-sqlalchemy>=2.0
-asyncpg>=0.29
-psycopg2-binary>=2.9
-redis>=5.0
-motor>=3.4          # Mongo async opcional
-pymongo>=4.7
-
-########## FAST APIs & SERIALIZAÇÃO ##########
-fastapi>=0.111
-uvicorn[standard]>=0.29
-pydantic>=2.7
-orjson>=3.10
-
-########## JOBS / FILAS ##########
-apscheduler>=3.10
-celery[redis]>=5.4
-rq>=1.15
-
-########## DOCUMENTOS / PARSING ##########
-pdfplumber>=0.10
-PyPDF2>=3.0
-docx2txt>=0.9
-unstructured>=0.12
-
-########## NICE‑TO‑HAVE ##########
-pendulum>=3.0
-python-slugify>=8.0
-pyyaml>=6.0
-prometheus-client>=0.20
-GitPython>=3.1
+# ─── (REMOVA O RESTANTE POR ENQUANTO) ───────────────────────────
+# beautifulsoup4, pandas, fastapi, etc. ficam para quando realmente for ativar scraping,
+# análise local, micro‑services, etc. Mantemos o mínimo viável e já preparamos o solo
+# para Nash evoluir em automações e deploys GitHub‑driven!
