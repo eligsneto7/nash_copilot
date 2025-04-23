@@ -1,20 +1,11 @@
-# ─── CORE (API Nash) ─────────────────────────────────────────────
-flask>=2.3
-gunicorn>=21.0.0
-openai>=1.13
-pinecone>=3.0
-python-dotenv>=1.0
-requests>=2.32
-tiktoken>=0.7              # opcional, bom para controle de tokens
-
-# ─── AUTONOMIA & SCHEDULING ──────────────────────────────────────
-apscheduler>=3.10          # cron interno (self‑review, jobs periódicos)
-
-# ─── GIT & GITHUB INTEGRAÇÃO ────────────────────────────────────
-GitPython>=3.1             # manipular repositório localmente
-PyGithub>=1.59             # acesso à API GitHub (PRs, issues, commits)
-
-# ─── (REMOVA O RESTANTE POR ENQUANTO) ───────────────────────────
-# beautifulsoup4, pandas, fastapi, etc. ficam para quando realmente for ativar scraping,
-# análise local, micro‑services, etc. Mantemos o mínimo viável e já preparamos o solo
-# para Nash evoluir em automações e deploys GitHub‑driven!
+flask>=2.0 # Use uma versão recente
+openai>=1.0 # Importante usar v1.x ou superior
+pinecone-client>=3.0 # Ou a versão compatível com seu plano
+python-dotenv>=0.19
+requests>=2.25
+PyGithub>=1.55 # Ou mais recente
+google-api-python-client>=2.0
+google-auth-httplib2>=0.1
+google-auth-oauthlib>=0.5
+gunicorn>=20.0 # Recomendado para produção com Flask no Railway
+Werkzeug>=2.0 # Dependência do Flask, especificar pode ajudar

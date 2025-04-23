@@ -1,503 +1,346 @@
-# --- START OF FILE nash_ui.py (Refatorado) ---
+```python
+# --- START OF FILE nash_ui.py (Refatorado e Traduzido) ---
 
 import streamlit as st
 import requests
 import time
 import random
 import html
-import uuid
+import uuid # Usado para keys únicas se necessário
 from datetime import datetime, timedelta
-from streamlit_extras.add_vertical_space import add_vertical_space # Exemplo de uso de extras
-# Considerar 'from streamlit_extras.stoggle import stoggle' para seções colapsáveis se necessário
+from streamlit_extras.add_vertical_space import add_vertical_space
+import json # Para exibir conteúdo de código formatado
 
 # --- Constantes ---
-# Use st.secrets para produção ou variáveis de ambiente
-# BACKEND_URL = st.secrets.get("BACKEND_URL", "https://nashcopilot-production.up.railway.app") # Exemplo com secrets
-BACKEND_URL = "https://nashcopilot-production.up.railway.app" # Mantendo como no original por enquanto
-REQUEST_TIMEOUT = (5, 65) # (connect timeout, read timeout)
+# Use st.secrets para produção ou variáveis de ambiente para o URL do backend
+# BACKEND_URL = st.secrets.get("BACKEND_URL", "https://nashcopilot-production.up.railway.app")
+BACKEND_URL = os.getenv("BACKEND_URL", "https://nashcopilot-production.up.railway.app") # Melhor ler do ambiente
+REQUEST_TIMEOUT = (5, 65) # (connect timeout, read timeout em segundos)
 
-# Textos dos Sinais (Mantidos)
-SIGN_PANIC_TEXT = "NÃO ENTRE EM PÂNICO"
-SIGN_42_TEXT = "42"
-
-# --- Definições de Temas CSS ---
-
-# Tema Cyberpunk Refinado
-CYBERPUNK_CSS = """
+# --- Definição do Tema CSS (Light Mode Adaptado e Traduzido) ---
+# Escolhendo um tema clean e moderno como base.
+MODERN_LIGHT_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Orbitron:wght@400;700&display=swap');
-
-/* --- Variáveis CSS (Exemplo) --- */
-:root {
-    --cyber-bg: #0d0f18;
-    --cyber-bg-gradient: radial-gradient(ellipse at center, #10121f 0%, #0b0c14 70%), linear-gradient(145deg, #0b0c14 70%, #181a29 100%);
-    --cyber-text: #d0d8ff;
-    --cyber-primary: #0affa0; /* Verde Neon */
-    --cyber-secondary: #ff07e6; /* Magenta Neon */
-    --cyber-accent: #0aebff; /* Azul Neon Claro */
-    --cyber-border-color: #0affa040;
-    --cyber-border-color-hover: #0affa090;
-    --cyber-input-bg: #101225;
-    --cyber-code-bg: rgba(10, 12, 25, 0.9);
-    --cyber-card-bg: linear-gradient(170deg, #0f111a 0%, #1c202f 100%);
-    --font-mono: 'Fira Mono', 'Consolas', monospace;
-    --font-display: 'Orbitron', 'Fira Mono', monospace;
-}
-
-/* --- Animações --- */
-@keyframes blink-neon {
-  0%, 100% { opacity: 1; text-shadow: 0 0 7px var(--cyber-secondary), 0 0 15px var(--cyber-secondary), 0 0 20px var(--cyber-secondary); }
-  50% { opacity: 0.7; text-shadow: 0 0 5px color-mix(in srgb, var(--cyber-secondary), transparent 40%), 0 0 10px color-mix(in srgb, var(--cyber-secondary), transparent 40%); }
-}
-@keyframes subtle-pulse { 0%, 100% { opacity: 0.9; } 50% { opacity: 1; } }
-@keyframes thinking-pulse {
-    0% { background-color: color-mix(in srgb, var(--cyber-primary), transparent 70%); box-shadow: 0 0 8px color-mix(in srgb, var(--cyber-primary), transparent 70%); }
-    50% { background-color: color-mix(in srgb, var(--cyber-primary), transparent 60%); box-shadow: 0 0 15px color-mix(in srgb, var(--cyber-primary), transparent 50%); }
-    100% { background-color: color-mix(in srgb, var(--cyber-primary), transparent 70%); box-shadow: 0 0 8px color-mix(in srgb, var(--cyber-primary), transparent 70%); }
-}
-@keyframes spin { 100% { transform: rotate(360deg); } }
-
-/* --- Body e Geral --- */
-body {
-    background: var(--cyber-bg-gradient);
-    background-attachment: fixed;
-    color: var(--cyber-text) !important;
-    font-family: var(--font-mono);
-    min-height: 100vh !important;
-    overflow-x: hidden;
-}
-body::before { /* Overlay sutil de chuva/estática */
-    content: ''; background-image: url('https://www.transparenttextures.com/patterns/scanlines.png'), linear-gradient(rgba(10, 255, 160, 0.02), rgba(10, 255, 160, 0.01));
-    opacity: .08; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
-    pointer-events: none; background-size: auto, cover; mix-blend-mode: overlay;
-}
-
-/* --- Área Principal --- */
-.main > div { /* Container principal do Streamlit */
-    background: none !important; /* Remove fundo padrão */
-    border: none !important; /* Remove borda padrão */
-    box-shadow: none !important;
-}
-
-/* --- Visor Holográfico --- */
-#visor {
-    background: linear-gradient(135deg, rgba(16, 18, 37, 0.97) 80%, color-mix(in srgb, var(--cyber-secondary), transparent 15%) 140%), rgba(5, 5, 15, 0.96);
-    border-radius: 15px; margin-bottom: 25px; border: 2.5px solid color-mix(in srgb, var(--cyber-secondary), transparent 60%);
-    box-shadow: 0 0 30px color-mix(in srgb, var(--cyber-secondary), transparent 70%), inset 0 0 15px rgba(16, 18, 37, 0.88); padding: 18px 26px 14px 30px;
-    display: flex; align-items: flex-start; gap: 25px; /* Alinhar ao topo */
-}
-.nash-avatar-emoji { font-size: 4rem; filter: drop-shadow(0 0 15px color-mix(in srgb, var(--cyber-primary), transparent 40%)); line-height: 1; animation: subtle-pulse 3s infinite ease-in-out; }
-.visor-content { display: flex; flex-direction: column; } /* Container para texto */
-.nash-holo, .nash-enterprise-tag, .nash-ascii, .nash-ascii b { font-family: var(--font-display); user-select: none; }
-.nash-holo { font-size: 2.1em; color: var(--cyber-primary); text-shadow: 0 0 15px color-mix(in srgb, var(--cyber-primary), transparent 40%), 0 0 5px rgba(255, 255, 255, 0.37); margin-bottom: 3px; }
-.nash-enterprise-tag { font-size: 0.9em; color: color-mix(in srgb, var(--cyber-secondary), transparent 30%); font-family: var(--font-mono); }
-.nash-ascii { font-family: var(--font-mono); color: color-mix(in srgb, var(--cyber-primary), transparent 20%); letter-spacing: 0.5px; line-height: 1.2; font-size: 0.95em; text-shadow: 0 0 8px color-mix(in srgb, var(--cyber-primary), transparent 80%); margin-top: 10px; margin-bottom: 10px; white-space: pre; }
-.nash-ascii b { color: var(--cyber-secondary); font-weight: bold; }
-.visor-analytics {
-    color: var(--cyber-secondary); font-size: 0.95em; padding: 0.4em 1.3em; background: rgba(10, 10, 25, 0.75);
-    border-radius: 8px; border: 1px solid color-mix(in srgb, var(--cyber-secondary), transparent 70%); margin-top: 12px; line-height: 1.45;
-}
-.visor-analytics b { color: #ffffff; }
-.visor-analytics i { color: #c8d3ff; opacity: 0.85; }
-
-/* --- Botões --- */
-.stButton > button {
-    color: #e0e8ff; background: #1f243d; border-radius: 8px; border: 2px solid var(--cyber-border-color);
-    font-weight: bold; transition: all 0.3s ease; box-shadow: 0 0 10px rgba(10, 255, 160, 0.12); padding: 0.4rem 0.8rem; font-family: var(--font-mono);
-}
-.stButton > button:hover { background: #2a3050; border-color: var(--cyber-border-color-hover); box-shadow: 0 0 18px rgba(10, 255, 160, 0.37); color: #ffffff; }
-.stButton > button:active { background: #15182a; }
-.stButton > button:disabled { background: #2d334a; color: #7b84a3; border-color: #424861; cursor: not-allowed; }
-.stButton.clear-button > button { border-color: color-mix(in srgb, var(--cyber-secondary), transparent 55%); color: #ffc0e8; box-shadow: 0 0 10px color-mix(in srgb, var(--cyber-secondary), transparent 80%); }
-.stButton.clear-button > button:hover { border-color: var(--cyber-secondary); background: #3d1f35; box-shadow: 0 0 18px color-mix(in srgb, var(--cyber-secondary), transparent 60%); color: #ffffff; }
-
-/* --- Área de Input (st.chat_input) --- */
-.stChatInputContainer {
-    background: transparent; /* Fundo já é do body */
-    border-top: 1px solid var(--cyber-border-color);
-    padding: 1rem 0.5rem;
-    margin: 0;
-}
-.stChatInputContainer textarea {
-    background: var(--cyber-input-bg) !important;
-    color: var(--cyber-text) !important;
-    border: 1px solid var(--cyber-border-color) !important;
-    border-radius: 8px !important;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.37);
-    font-size: 1.05em; padding: 10px 12px;
-    font-family: var(--font-mono) !important;
-}
-.stChatInputContainer textarea:focus { border-color: var(--cyber-border-color-hover) !important; box-shadow: 0 0 12px color-mix(in srgb, var(--cyber-primary), transparent 75%); }
-.stChatInputContainer ::placeholder { color: var(--cyber-primary) !important; opacity: 0.5 !important; }
-/* Send button (might need adjustment based on Streamlit version) */
-.stChatInputContainer button[kind="icon"] {
-    background: var(--cyber-primary);
-    border: 1px solid var(--cyber-primary);
-    border-radius: 50%;
-    fill: var(--cyber-bg) !important;
-}
-.stChatInputContainer button[kind="icon"]:hover { background: color-mix(in srgb, var(--cyber-primary), white 20%); }
-
-/* --- File Uploader (Sidebar) --- */
-.stFileUploader {
-    background: color-mix(in srgb, var(--cyber-input-bg), transparent 20%) !important;
-    border: 1px dashed var(--cyber-border-color) !important; border-radius: 8px; padding: 12px; margin-top: 5px;
-}
-.stFileUploader label { color: color-mix(in srgb, var(--cyber-primary), transparent 30%) !important; font-size: 0.95em; }
-.stFileUploader small { color: color-mix(in srgb, var(--cyber-primary), transparent 50%) !important; font-size: 0.8em; }
-.stFileUploader button { display: none !important; } /* Oculta botão default */
-
-/* --- Histórico de Chat (st.chat_message) --- */
-    /* --- Histórico de Chat (st.chat_message) --- */
-    .stChatMessage {
-        /* Optional: Make base background very subtle or remove if setting below */
-        background: rgba(16, 18, 37, 0.6); /* Example: Darker, slightly transparent base */
-        border: 1px solid transparent;
-        border-left: 3px solid; /* Color still set below */
-        border-radius: 8px;
-        margin-bottom: 1rem;
-        padding: 0.75rem 1rem;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        gap: 0.75rem !important;
-    }
-
-    /* Mensagens do Usuário (Eli) */
-    /* Target the container directly */
-    .stChatMessage[data-testid="chatAvatarIcon-user"] {
-        background: #251523; /* Example: Dark purple/magenta tint for user */
-        border-left-color: var(--cyber-secondary); /* Keep the border color distinct */
-    }
-    .stChatMessage[data-testid="chatAvatarIcon-user"] .stMarkdown p,
-    .stChatMessage[data-testid="chatAvatarIcon-user"] .stCodeBlock code { color: var(--cyber-text); }
-
-
-    /* Mensagens do Assistente (Nash) */
-    /* Target the container directly */
-    .stChatMessage[data-testid="chatAvatarIcon-assistant"] {
-         background: #152523; /* Example: Dark teal/green tint for assistant */
-         border-left-color: var(--cyber-primary); /* Keep the border color distinct */
-    }
-    .stChatMessage[data-testid="chatAvatarIcon-assistant"] .stMarkdown p,
-    .stChatMessage[data-testid="chatAvatarIcon-assistant"] .stCodeBlock code { color: var(--cyber-text); } /* Ajuste a cor se necessário */
-/* Links */
-.stChatMessage .stMarkdown a {
-    color: var(--cyber-accent); text-decoration: underline; text-decoration-style: dashed; text-underline-offset: 3px;
-}
-.stChatMessage .stMarkdown a:hover { color: #ffffff; text-decoration-style: solid; }
-
-/* --- Estilos para st.code dentro do chat --- */
-.stCodeBlock {
-    border: 1px solid var(--cyber-border-color); border-radius: 5px; background-color: var(--cyber-code-bg) !important; margin: 10px 0;
-}
-.stCodeBlock code {
-    color: #e0e8ff; background-color: transparent !important; font-family: var(--font-mono);
-    font-size: 0.95em; white-space: pre-wrap !important; word-wrap: break-word !important;
-}
-.stCodeBlock div[data-testid="stCodeToolbar"] > button {
-    background-color: #1f243d !important; border: 1px solid var(--cyber-border-color-hover) !important; color: #e0e8ff !important;
-    opacity: 0.7; transition: opacity 0.3s ease; border-radius: 4px;
-}
-.stCodeBlock div[data-testid="stCodeToolbar"] > button:hover {
-    opacity: 1; background-color: #2a3050 !important; border-color: var(--cyber-primary) !important;
-}
-
-/* --- Status do Backend --- */
-#backend-status {
-    position: fixed; top: 10px; right: 15px; font-size: 0.85em; color: var(--cyber-secondary); font-family: var(--font-mono);
-    background: rgba(15, 15, 25, 0.85); padding: 4px 10px; border-radius: 5px; border: 1px solid color-mix(in srgb, var(--cyber-secondary), transparent 75%); z-index: 1000;
-    backdrop-filter: blur(3px);
-}
-
-/* --- Sidebar --- */
-.stSidebar > div:first-child {
-    background: linear-gradient(180deg, rgba(16, 18, 37, 0.94) 0%, rgba(24, 28, 48, 0.94) 100%);
-    border-right: 1px solid color-mix(in srgb, var(--cyber-primary), transparent 80%);
-    backdrop-filter: blur(5px); padding-top: 1rem;
-}
-.stSidebar .stMarkdown h3 {
-    color: var(--cyber-secondary); text-shadow: 0 0 8px color-mix(in srgb, var(--cyber-secondary), transparent 70%); margin-top: 10px; margin-bottom: 4px; font-family: var(--font-display); font-size: 1.2em;
-}
-.stSidebar .stMarkdown, .stSidebar .stSelectbox label, .stSidebar .stCheckbox label { color: #c8d3ff; }
-.stSidebar .stMarkdown > *, .stSidebar .stFileUploader, .stSidebar .stButton, .stSidebar .stSelectbox, .stSidebar .stCheckbox {
-    margin-bottom: 0.75rem;
-}
-.stSidebar .stButton { margin-top: 0.5rem; }
-.nash-profile-details {
-    font-size: 0.9em; line-height: 1.4; margin-top: -5px; color: #c8d3ff;
-}
-.stSelectbox > div { border-radius: 6px; border-color: var(--cyber-border-color); background-color: var(--cyber-input-bg); }
-.stSelectbox div[data-baseweb="select"] > div { background-color: var(--cyber-input-bg); border-color: var(--cyber-border-color) !important; }
-.stSelectbox div[role="listbox"] ul { background-color: var(--cyber-input-bg); }
-.stSelectbox div[role="option"] { color: var(--cyber-text); }
-.stSelectbox div[role="option"]:hover { background-color: #2a3050; }
-
-/* --- Sinais Neon --- */
-.sidebar-sign {
-    font-family: var(--font-display); font-weight: bold; padding: 8px 15px; margin: 9px auto;
-    border-radius: 5px; text-align: center; display: block; width: fit-content; background-color: rgba(0, 0, 10, 0.5);
-    border: 1px solid; letter-spacing: 1px; box-shadow: inset 0 0 10px rgba(0,0,0,0.6); user-select: none;
-}
-.sign-panic {
-    color: var(--cyber-secondary); border-color: color-mix(in srgb, var(--cyber-secondary), transparent 60%); animation: blink-neon 1.5s infinite; font-size: 1.1em;
-}
-.sign-42 {
-    color: var(--cyber-primary); border-color: color-mix(in srgb, var(--cyber-primary), transparent 60%); text-shadow: 0 0 6px var(--cyber-primary), 0 0 14px var(--cyber-primary), 0 0 20px var(--cyber-primary);
-    font-size: 1.8em; padding: 5px 20px;
-}
-
-/* --- Indicador de Loading (usado com st.spinner) --- */
-/* Estilização padrão do spinner é geralmente suficiente, mas pode ser customizada se necessário */
-.stSpinner > div { border-top-color: var(--cyber-primary) !important; border-left-color: var(--cyber-primary) !important; } /* Cor do spinner */
-
-/* --- Mobile Responsiveness --- */
-@media (max-width: 768px) {
-    body { font-size: 14px; }
-    #visor { flex-direction: column; align-items: center; gap: 15px; padding: 15px; text-align: center; }
-    .nash-avatar-emoji { font-size: 3.5rem; margin-bottom: 10px; }
-    .visor-content { align-items: center; } /* Centralizar texto no mobile */
-    .nash-holo { font-size: 1.8em; }
-    .nash-enterprise-tag { font-size: 0.8em; }
-    .nash-ascii { font-size: 0.85em; line-height: 1.3; }
-    .visor-analytics { font-size: 0.9em; padding: 0.3em 1em; text-align: left; } /* Manter stats alinhadas */
-    .stChatMessage { padding: 0.5rem 0.75rem; margin-bottom: 0.75rem; }
-    .stCodeBlock code { font-size: 0.9em; }
-    #backend-status { font-size: 0.8em; padding: 3px 7px; top: 5px; right: 10px; }
-    .stChatInputContainer { padding: 0.5rem 0.25rem; }
-    .stChatInputContainer textarea { font-size: 1em; }
-    .stSidebar > div:first-child { padding-top: 0.5rem; }
-    .stSidebar .stMarkdown h3 { font-size: 1.1em; }
-}
-</style>
-"""
-
-# Tema Light Mode Refinado
-LIGHT_MODE_CSS = """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400&family=Roboto:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Fira+Mono:wght@400&display=swap');
 
 /* --- Variáveis CSS --- */
 :root {
-    --light-bg: #f0f2f5;
-    --light-text: #333333;
-    --light-primary: #0d6efd; /* Azul Padrão Bootstrap */
-    --light-secondary: #6c757d; /* Cinza Secundário */
-    --light-accent: #d63384; /* Rosa/Magenta para Eli */
-    --light-border-color: #d1d5db;
-    --light-input-bg: #ffffff;
-    --light-code-bg: #f8f9fa;
-    --light-card-bg: #ffffff;
-    --font-sans: 'Roboto', sans-serif;
+    --ui-bg: #f7f9fc; /* Fundo principal ligeiramente off-white */
+    --ui-card-bg: #ffffff; /* Fundo dos cards e chat */
+    --ui-text: #212529; /* Cor principal do texto (escuro) */
+    --ui-text-secondary: #6c757d; /* Cor secundária (cinza) */
+    --ui-primary: #0052cc; /* Azul primário (um pouco mais vibrante) */
+    --ui-primary-light: #e6f0ff; /* Azul bem claro para fundos sutis */
+    --ui-accent: #007bff; /* Azul de destaque (links, etc.) */
+    --ui-border-color: #dee2e6; /* Cor padrão de borda */
+    --ui-input-bg: #ffffff; /* Fundo dos inputs */
+    --ui-input-border: #ced4da; /* Borda dos inputs */
+    --ui-code-bg: #f8f9fa; /* Fundo dos blocos de código */
+    --ui-avatar-user-bg: #e6f0ff; /* Fundo avatar usuário (azul claro) */
+    --ui-avatar-assistant-bg: #e9ecef; /* Fundo avatar assistente (cinza claro) */
+    --font-sans: 'Inter', sans-serif;
     --font-mono: 'Fira Mono', 'Consolas', monospace;
 }
 
 /* --- Body e Geral --- */
-body { background: var(--light-bg); color: var(--light-text) !important; font-family: var(--font-sans); min-height: 100vh !important; overflow-x: hidden; }
+body {
+    background-color: var(--ui-bg);
+    color: var(--ui-text) !important;
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    min-height: 100vh !important;
+    overflow-x: hidden;
+}
 
 /* --- Área Principal --- */
-.main > div { background: none !important; border: none !important; box-shadow: none !important; }
+.main > div {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 1rem 1.5rem; /* Espaçamento interno */
+}
 
-/* --- Visor --- */
+/* --- Visor Superior --- */
 #visor {
-    background: linear-gradient(135deg, #eef2f7 80%, #d6e4f5 140%);
-    border-radius: 10px; margin-bottom: 25px; border: 1px solid #c3daef;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05), inset 0 0 10px rgba(0,0,0,0.03); padding: 18px 26px;
-    display: flex; align-items: flex-start; gap: 20px;
+    background: var(--ui-card-bg);
+    border-radius: 12px; margin-bottom: 2rem; border: 1px solid var(--ui-border-color);
+    box-shadow: 0 2px 10px rgba(0, 82, 204, 0.05); padding: 1.25rem 1.75rem;
+    display: flex; align-items: center; gap: 1.5rem; /* Alinhado ao centro verticalmente */
 }
-.nash-avatar-emoji { font-size: 3.5rem; filter: none; line-height: 1; color: var(--light-primary); } /* Emoji com cor primária */
-.visor-content { display: flex; flex-direction: column; }
-.nash-holo, .nash-enterprise-tag, .nash-ascii, .nash-ascii b { font-family: var(--font-sans); user-select: none; }
-.nash-holo { font-size: 1.9em; color: var(--light-primary); text-shadow: none; margin-bottom: 2px; font-weight: bold; }
-.nash-enterprise-tag { font-size: 0.9em; color: var(--light-secondary); }
-.nash-ascii { font-family: var(--font-mono); color: #555; letter-spacing: 0; line-height: 1.3; font-size: 0.9em; text-shadow: none; margin-top: 10px; margin-bottom: 10px; white-space: pre; }
-.nash-ascii b { color: var(--light-primary); font-weight: bold; }
+.nash-avatar-emoji {
+    font-size: 3rem; line-height: 1; display: flex; align-items: center; justify-content: center;
+    width: 60px; height: 60px; background-color: var(--ui-avatar-assistant-bg); border-radius: 50%;
+    color: var(--ui-primary); /* Cor do emoji pode variar */
+}
+.visor-content { display: flex; flex-direction: column; flex-grow: 1; }
+.nash-holo { font-size: 1.6em; color: var(--ui-primary); margin-bottom: 0px; font-weight: 700; }
+.nash-enterprise-tag { font-size: 0.9em; color: var(--ui-text-secondary); margin-bottom: 0.75rem; }
 .visor-analytics {
-    color: #4a5568; font-size: 0.9em; padding: 0.5em 1.1em; background: #e9ecef;
-    border-radius: 6px; border: 1px solid #ced4da; margin-top: 12px; line-height: 1.5;
+    color: var(--ui-text-secondary); font-size: 0.85em; padding: 0.6em 1em; background: var(--ui-bg);
+    border-radius: 8px; border: 1px solid var(--ui-border-color); margin-top: 0.5rem; line-height: 1.5;
+    font-family: var(--font-mono);
 }
-.visor-analytics b { color: #111; }
-.visor-analytics i { color: #6c757d; opacity: 1; }
+.visor-analytics b { color: var(--ui-text); font-weight: 500; }
+.visor-analytics i { color: var(--ui-primary); opacity: 1; font-style: normal; } /* Ícone ou detalhe */
 
 /* --- Botões --- */
 .stButton > button {
-    color: #ffffff; background: var(--light-primary); border-radius: 6px; border: 1px solid var(--light-primary);
-    font-weight: normal; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.1); padding: 0.4rem 0.8rem; font-family: var(--font-sans);
+    color: #ffffff; background-color: var(--ui-primary); border-radius: 8px; border: 1px solid var(--ui-primary);
+    font-weight: 500; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); padding: 0.5rem 1rem; font-family: var(--font-sans);
+    line-height: 1.5; /* Ajuste para alinhar texto */
 }
-.stButton > button:hover { background: #0b5ed7; border-color: #0a58ca; box-shadow: 0 2px 4px rgba(0,0,0,0.1); color: #ffffff; }
-.stButton > button:active { background: #0a58ca; }
-.stButton > button:disabled { background: #ced4da; color: #6c757d; border-color: #ced4da; cursor: not-allowed; }
-.stButton.clear-button > button { background: #dc3545; border-color: #dc3545; color: #fff; }
-.stButton.clear-button > button:hover { background: #bb2d3b; border-color: #b02a37; }
+.stButton > button:hover { background-color: #0041a3; border-color: #003b93; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); color: #ffffff; }
+.stButton > button:active { background-color: #003b93; }
+.stButton > button:disabled { background-color: #adb5bd; color: #ffffff; border-color: #adb5bd; cursor: not-allowed; opacity: 0.7; }
+/* Botão secundário/perigoso */
+.stButton.clear-button > button { background-color: #dc3545; border-color: #dc3545; }
+.stButton.clear-button > button:hover { background-color: #bb2d3b; border-color: #b02a37; }
 
 /* --- Área de Input (st.chat_input) --- */
 .stChatInputContainer {
-    background: #ffffff;
-    border-top: 1px solid var(--light-border-color);
-    padding: 1rem 0.5rem; margin: 0;
-    box-shadow: 0 -1px 5px rgba(0,0,0,0.05);
+    background: #ffffff; border-top: 1px solid var(--ui-border-color);
+    padding: 0.8rem 1rem; margin: 0 -1.5rem -1rem -1.5rem; /* Ajusta para tocar bordas */
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+}
+.stChatInputContainer section { /* Container interno */
+     border: 1px solid var(--ui-input-border) !important; background: var(--ui-input-bg) !important; border-radius: 8px !important;
+     box-shadow: none !important;
 }
 .stChatInputContainer textarea {
-    background: var(--light-input-bg) !important; color: var(--light-text) !important; border: 1px solid #ced4da !important;
-    border-radius: 6px !important; box-shadow: inset 0 1px 2px rgba(0,0,0,0.075); font-size: 1em; padding: 8px 10px;
-    font-family: var(--font-sans) !important;
+    background: transparent !important; color: var(--ui-text) !important; border: none !important;
+    box-shadow: none !important; font-size: 1em; padding: 0.6rem 0.8rem;
+    font-family: var(--font-sans) !important; line-height: 1.5;
 }
-.stChatInputContainer textarea:focus { border-color: #86b7fe !important; box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); }
-.stChatInputContainer ::placeholder { color: #6c757d !important; opacity: 1 !important; }
-.stChatInputContainer button[kind="icon"] {
-    background: var(--light-primary);
-    border: 1px solid var(--light-primary);
-    border-radius: 50%;
-    fill: #ffffff !important;
+.stChatInputContainer textarea:focus { border-color: var(--ui-primary) !important; box-shadow: 0 0 0 2px rgba(0, 82, 204, 0.15) !important; }
+.stChatInputContainer ::placeholder { color: var(--ui-text-secondary) !important; opacity: 0.8 !important; }
+.stChatInputContainer button[kind="icon"] { /* Botão de Enviar */
+    background: var(--ui-primary) !important; border: none !important; border-radius: 50% !important; box-shadow: none !important;
+    fill: #ffffff !important; padding: 5px !important; margin: 0 5px; /* Ajustes finos */
+    transition: background-color 0.2s ease;
 }
-.stChatInputContainer button[kind="icon"]:hover { background: #0b5ed7; }
-
+.stChatInputContainer button[kind="icon"]:hover { background: #0041a3 !important; }
+.stChatInputContainer button[kind="secondary"] { /* Botão anexar (se visível) */
+    border: none !important; fill: var(--ui-text-secondary) !important;
+}
 
 /* --- File Uploader (Sidebar) --- */
 .stFileUploader {
-    background: #f8f9fa !important; border: 1px dashed #ced4da !important; border-radius: 6px; padding: 12px; margin-top: 5px;
+    background: var(--ui-bg) !important; border: 2px dashed var(--ui-border-color) !important; border-radius: 8px; padding: 1rem; margin-top: 0.5rem;
 }
-.stFileUploader label { color: var(--light-primary) !important; font-size: 0.95em; }
-.stFileUploader small { color: #6c757d !important; font-size: 0.8em; }
+.stFileUploader label > span { /* Texto "Arraste e solte..." */
+    color: var(--ui-text-secondary) !important; font-size: 0.95em; display: block; text-align: center;
+}
+.stFileUploader label svg { /* Ícone de upload */
+    color: var(--ui-primary) !important; margin: 0 auto 0.5rem auto; display: block; width: 30px; height: 30px;
+}
+.stFileUploader small { /* Texto "Limite X MB" */
+    color: var(--ui-text-secondary) !important; font-size: 0.8em; text-align: center; display: block;
+}
+.stFileUploader div[data-testid="stFileUploaderButton"] button { /* Botão "Procurar arquivos" */
+     margin: 0.5rem auto 0 auto; display: block; /* Centralizar botão */
+}
+.stFileUploader .uploadedFileName { /* Nome do arquivo após upload */
+    font-family: var(--font-mono); font-size: 0.9em; background-color: var(--ui-primary-light); color: var(--ui-primary);
+    padding: 0.3rem 0.6rem; border-radius: 4px; margin-top: 0.5rem; display: inline-block;
+}
 
 /* --- Histórico de Chat (st.chat_message) --- */
 .stChatMessage {
-    background: var(--light-card-bg);
-    border: 1px solid var(--light-border-color);
-    border-left: 4px solid; /* Será colorida por role */
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    padding: 0.8rem 1.1rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    gap: 1rem !important;
+    background-color: var(--ui-card-bg); border: 1px solid var(--ui-border-color); border-left-width: 4px;
+    border-radius: 8px; margin-bottom: 1rem; padding: 0.8rem 1.1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03); gap: 1rem !important;
+    width: 98%; /* Evitar que cole na borda direita */
+    max-width: 800px; /* Largura máxima para legibilidade */
 }
-/* Mensagens do Usuário (Eli) */
-.stChatMessage[data-testid="chatAvatarIcon-user"] + div { border-left-color: var(--light-accent); }
-.stChatMessage[data-testid="chatAvatarIcon-user"] .stMarkdown p,
-.stChatMessage[data-testid="chatAvatarIcon-user"] .stCodeBlock code { color: var(--light-text); }
-/* Mensagens do Assistente (Nash) */
-.stChatMessage[data-testid="chatAvatarIcon-assistant"] + div { border-left-color: var(--light-primary); }
-.stChatMessage[data-testid="chatAvatarIcon-assistant"] .stMarkdown p,
-.stChatMessage[data-testid="chatAvatarIcon-assistant"] .stCodeBlock code { color: var(--light-text); }
-/* Links */
-.stChatMessage .stMarkdown a { color: var(--light-primary); text-decoration: underline; }
-.stChatMessage .stMarkdown a:hover { color: #0a58ca; }
+/* Alinhamento e cores por role */
+.stChatMessage[data-testid="chatAvatarIcon-user"] { /* Usuário (Eli) */
+    margin-left: auto; margin-right: 0; /* Alinha à direita */
+    border-left-color: var(--ui-accent); /* Usando accent (azul mais claro) */
+}
+.stChatMessage[data-testid="chatAvatarIcon-assistant"] { /* Assistente (Nash) */
+     margin-left: 0; margin-right: auto; /* Alinha à esquerda */
+     border-left-color: var(--ui-primary);
+}
+/* Avatares */
+.stChatMessage .stChatMessageContent div[data-testid="chatAvatarIcon"] { /* Container do Avatar */
+    width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; /* Tamanho do emoji */
+}
+.stChatMessage[data-testid="chatAvatarIcon-user"] .stChatMessageContent div[data-testid="chatAvatarIcon"] {
+    background-color: var(--ui-avatar-user-bg);
+}
+.stChatMessage[data-testid="chatAvatarIcon-assistant"] .stChatMessageContent div[data-testid="chatAvatarIcon"] {
+     background-color: var(--ui-avatar-assistant-bg);
+}
+/* Conteúdo do Markdown */
+.stChatMessage .stMarkdown { color: var(--ui-text); line-height: 1.6; }
+.stChatMessage .stMarkdown p { margin-bottom: 0.5rem; } /* Espaçamento entre parágrafos */
+.stChatMessage .stMarkdown strong { color: var(--ui-primary); font-weight: 600;}
+.stChatMessage .stMarkdown code { /* Código inline */
+    font-family: var(--font-mono); background-color: var(--ui-primary-light); color: var(--ui-primary);
+    padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em;
+}
+.stChatMessage .stMarkdown a { color: var(--ui-accent); text-decoration: none; border-bottom: 1px solid var(--ui-accent);}
+.stChatMessage .stMarkdown a:hover { color: #0056b3; border-bottom-width: 2px;}
 
-/* --- Estilos para st.code dentro do chat --- */
+/* --- Blocos de Código (st.code) dentro do chat --- */
 .stCodeBlock {
-    border: 1px solid #dee2e6; border-radius: 5px; background-color: var(--light-code-bg) !important; margin: 10px 0;
+    border: 1px solid var(--ui-border-color); border-radius: 8px; background-color: var(--ui-code-bg) !important; margin: 1rem 0;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.04);
 }
 .stCodeBlock code {
     color: #212529; background-color: transparent !important; font-family: var(--font-mono);
-    font-size: 0.9em; white-space: pre-wrap !important; word-wrap: break-word !important;
+    font-size: 0.9em; white-space: pre-wrap !important; word-wrap: break-word !important; padding: 1rem;
+}
+/* Toolbar do bloco de código (Copiar) */
+.stCodeBlock div[data-testid="stCodeToolbar"] {
+    background-color: var(--ui-code-bg) !important; border-bottom: 1px solid var(--ui-border-color); padding: 0.3rem 0.5rem;
 }
 .stCodeBlock div[data-testid="stCodeToolbar"] > button {
-    background-color: #e9ecef !important; border: 1px solid #ced4da !important; color: #495057 !important;
-    opacity: 0.8; transition: opacity 0.3s ease; border-radius: 4px;
+    background-color: transparent !important; border: none !important; color: var(--ui-text-secondary) !important;
+    opacity: 0.7; transition: opacity 0.3s ease; border-radius: 4px; padding: 0.2rem 0.4rem !important;
+    display: flex; align-items: center; gap: 0.3rem;
 }
-.stCodeBlock div[data-testid="stCodeToolbar"] > button:hover { opacity: 1; background-color: #ced4da !important; }
+.stCodeBlock div[data-testid="stCodeToolbar"] > button:hover {
+    opacity: 1; color: var(--ui-primary) !important; background-color: rgba(0, 82, 204, 0.05) !important;
+}
+.stCodeBlock div[data-testid="stCodeToolbar"] > button svg { /* Ícone de copiar */
+    width: 16px; height: 16px;
+}
 
-/* --- Status do Backend --- */
+
+/* --- Status do Backend Flutuante --- */
 #backend-status {
-    position: fixed; top: 10px; right: 15px; font-size: 0.9em; color: #495057; font-family: var(--font-sans);
-    background: rgba(255, 255, 255, 0.9); padding: 4px 10px; border-radius: 5px; border: 1px solid #dee2e6; z-index: 1000;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1); backdrop-filter: blur(3px);
+    position: fixed; top: 10px; right: 15px; font-size: 0.85em; color: var(--ui-text-secondary); font-family: var(--font-mono);
+    background: rgba(255, 255, 255, 0.9); padding: 5px 12px; border-radius: 15px; border: 1px solid var(--ui-border-color); z-index: 1000;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.07); backdrop-filter: blur(4px);
+    display: flex; align-items: center; gap: 0.5rem;
 }
+#backend-status .status-dot { /* Pequeno círculo indicando status */
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+}
+#backend-status .status-online { background-color: #28a745; /* Verde */ }
+#backend-status .status-offline { background-color: #dc3545; /* Vermelho */ }
+#backend-status .status-checking { background-color: #ffc107; /* Amarelo */ }
+#backend-status .status-error { background-color: #fd7e14; /* Laranja */ }
 
 /* --- Sidebar --- */
 .stSidebar > div:first-child {
-    background: #ffffff; border-right: 1px solid #dee2e6; padding-top: 1rem;
+    background: var(--ui-card-bg); border-right: 1px solid var(--ui-border-color); padding: 1.5rem 1rem; /* Mais padding */
 }
 .stSidebar .stMarkdown h3 {
-    color: var(--light-primary); text-shadow: none; margin-top: 10px; margin-bottom: 4px; font-size: 1.2em; font-weight: bold;
+    color: var(--ui-primary); text-shadow: none; margin-top: 1.5rem; margin-bottom: 0.5rem; font-size: 1.1em; font-weight: 700;
+    border-bottom: 1px solid var(--ui-border-color); padding-bottom: 0.3rem;
 }
-.stSidebar .stMarkdown, .stSidebar .stSelectbox label, .stSidebar .stCheckbox label { color: #495057; }
-.stSidebar .stMarkdown > *, .stSidebar .stFileUploader, .stSidebar .stButton, .stSidebar .stSelectbox, .stSidebar .stCheckbox {
-     margin-bottom: 0.8rem;
-}
-.stSidebar .stButton { margin-top: 0.5rem; }
-.nash-profile-details { font-size: 0.9em; line-height: 1.4; margin-top: -5px; color: #495057; }
-.stSelectbox > div { border-radius: 6px; border-color: #ced4da; background-color: var(--light-input-bg); }
-.stSelectbox div[data-baseweb="select"] > div { background-color: var(--light-input-bg); border-color: #ced4da !important; }
-.stSelectbox div[role="listbox"] ul { background-color: var(--light-input-bg); }
-.stSelectbox div[role="option"] { color: var(--light-text); }
-.stSelectbox div[role="option"]:hover { background-color: #e9ecef; }
+.stSidebar .stMarkdown h3:first-child { margin-top: 0; } /* Remove margem do primeiro título */
 
-/* --- Sinais (Sidebar) --- */
-.sidebar-sign {
-     font-family: var(--font-sans); font-weight: bold; padding: 6px 12px; margin: 9px auto;
-     border-radius: 5px; text-align: center; display: block; width: fit-content; background-color: #e9ecef;
-     border: 1px solid #ced4da; letter-spacing: 0.5px; box-shadow: none; user-select: none;
-     animation: none !important; text-shadow: none !important;
+.stSidebar .stMarkdown, .stSidebar .stSelectbox label, .stSidebar .stCheckbox label, .stSidebar .stTextInput label, .stSidebar .stTextArea label {
+     color: var(--ui-text); font-size: 0.95em; margin-bottom: 0.2rem; font-weight: 500;
 }
-.sign-panic { color: #dc3545; border-color: #f1ae B5; background-color: #f8d7da; font-size: 1em; } /* Alerta mais visível */
-.sign-42 { color: #198754; border-color: #a3cfbb; background-color: #d1e7dd; font-size: 1.5em; padding: 4px 15px; } /* Verde mais visível */
+.stSidebar .stMarkdown > *, .stSidebar .stFileUploader, .stSidebar .stButton, .stSidebar .stSelectbox, .stSidebar .stCheckbox, .stSidebar .stExpander {
+     margin-bottom: 1rem; /* Espaçamento entre elementos */
+}
+.stSidebar .stButton { margin-top: 0.5rem; } /* Menos margem acima dos botões */
 
+.nash-profile-details { font-size: 0.9em; line-height: 1.5; margin-top: 0.5rem; color: var(--ui-text-secondary); padding-left: 5px; border-left: 3px solid var(--ui-primary-light); }
+.nash-profile-details b { color: var(--ui-text); font-weight: 500; }
+
+/* Inputs na Sidebar */
+.stSidebar .stTextInput input, .stSidebar .stTextArea textarea {
+     border: 1px solid var(--ui-input-border); border-radius: 6px; background-color: var(--ui-input-bg); color: var(--ui-text); font-size: 0.95em; padding: 0.5rem 0.7rem;
+}
+.stSidebar .stTextInput input:focus, .stSidebar .stTextArea textarea:focus {
+    border-color: var(--ui-primary); box-shadow: 0 0 0 2px rgba(0, 82, 204, 0.15);
+}
+
+/* Expander na Sidebar (para Ações de Código) */
+.stSidebar .stExpander {
+    background-color: transparent !important; border: 1px solid var(--ui-border-color) !important; border-radius: 8px !important; margin-bottom: 1rem;
+}
+.stSidebar .stExpander header { /* Cabeçalho do Expander */
+     background-color: transparent !important; border-bottom: none !important; padding: 0.6rem 0.8rem !important; font-weight: 500; color: var(--ui-primary);
+}
+.stSidebar .stExpander header:hover { background-color: rgba(0, 82, 204, 0.03) !important; }
+.stSidebar .stExpander svg { fill: var(--ui-primary) !important; } /* Ícone de expandir/recolher */
+.stSidebar .stExpander div[data-testid="stExpanderDetails"] { /* Conteúdo do Expander */
+    padding: 0.8rem !important; background: var(--ui-bg); border-top: 1px solid var(--ui-border-color);
+}
 
 /* --- Indicador de Loading (st.spinner) --- */
-.stSpinner > div { border-top-color: var(--light-primary) !important; border-left-color: var(--light-primary) !important; } /* Cor do spinner */
+.stSpinner > div { border-top-color: var(--ui-primary) !important; border-left-color: var(--ui-primary) !important; width: 30px !important; height: 30px !important; } /* Cor e tamanho do spinner */
 
 /* --- Mobile Responsiveness --- */
 @media (max-width: 768px) {
     body { font-size: 15px; }
-    #visor { flex-direction: column; align-items: center; gap: 10px; padding: 15px; text-align: center; }
-    .nash-avatar-emoji { font-size: 3rem; margin-bottom: 5px; }
-    .visor-content { align-items: center; }
-    .nash-holo { font-size: 1.6em; }
+    .main > div { padding: 0.8rem; }
+    #visor { flex-direction: column; align-items: flex-start; gap: 1rem; padding: 1rem; }
+    .nash-avatar-emoji { font-size: 2.5rem; width: 50px; height: 50px; }
+    .visor-content { align-items: flex-start; }
+    .nash-holo { font-size: 1.4em; }
     .nash-enterprise-tag { font-size: 0.85em; }
-    .nash-ascii { font-size: 0.8em; line-height: 1.3; }
-    .visor-analytics { font-size: 0.85em; }
-    .stChatMessage { padding: 0.6rem 0.8rem; margin-bottom: 0.75rem; }
+    .visor-analytics { font-size: 0.8em; }
+    .stChatMessage { padding: 0.6rem 0.8rem; margin-bottom: 0.75rem; width: 100%; max-width: none;}
     .stCodeBlock code { font-size: 0.85em; }
-    #backend-status { font-size: 0.8em; padding: 3px 7px; top: 5px; right: 10px; }
-    .stChatInputContainer { padding: 0.5rem 0.25rem; }
+    #backend-status { font-size: 0.75em; padding: 4px 10px; top: 5px; right: 10px; }
+    .stChatInputContainer { padding: 0.5rem; margin: 0 -0.8rem -0.8rem -0.8rem; }
     .stChatInputContainer textarea { font-size: 0.95em; }
-    .stSidebar > div:first-child { padding-top: 0.5rem; }
-    .stSidebar .stMarkdown h3 { font-size: 1.1em; }
+    .stSidebar > div:first-child { padding: 1rem 0.8rem; }
+    .stSidebar .stMarkdown h3 { font-size: 1.05em; }
 }
 </style>
 """
 
-THEMES = {
-    "Cyberpunk": CYBERPUNK_CSS,
-    "Light Mode": LIGHT_MODE_CSS,
-}
-
 # --- Funções Auxiliares ---
 
-def check_backend_status(force_check=False):
-    """Verifica o status do backend com cache simples."""
+def check_backend_status(force_check=False) -> tuple[str, str]:
+    """Verifica o status do backend. Retorna (status_texto, status_classe_css)."""
     now = datetime.now()
-    if not force_check and st.session_state.get("last_backend_check") and \
-       (now - st.session_state.last_backend_check) < timedelta(seconds=60):
-        return st.session_state.backend_status
+    # Cache simples para evitar checagens muito frequentes
+    cache_duration = timedelta(seconds=30)
+    if not force_check and "last_backend_check" in st.session_state and \
+       (now - st.session_state.last_backend_check) < cache_duration:
+        return st.session_state.backend_status, st.session_state.backend_status_class
 
-    status = "VERIFICANDO..."
+    status_text = "Verificando..."
+    status_class = "status-checking"
     status_code = None
+
     try:
-        # Usar um endpoint leve como /pingnet se disponível, senão /
         ping_url = f"{BACKEND_URL}/pingnet"
-        try:
-            r = requests.get(ping_url, timeout=REQUEST_TIMEOUT[0])
-            status_code = r.status_code
-        except requests.exceptions.RequestException:
-            # Tentar o endpoint raiz como fallback
-            r = requests.get(BACKEND_URL, timeout=REQUEST_TIMEOUT[0])
-            status_code = r.status_code
+        r = requests.get(ping_url, timeout=REQUEST_TIMEOUT[0]) # Timeout curto para ping
+        status_code = r.status_code
 
         if status_code == 200:
-            status = "ONLINE ⚡"
+            # <<< NOVO >>> Verificar se integrações estão ativas
+            data = r.json()
+            gh_ok = data.get("github_enabled", False)
+            search_ok = data.get("search_enabled", False)
+            if gh_ok and search_ok:
+                 status_text = "ONLINE"
+            elif gh_ok or search_ok:
+                 status_text = "ONLINE (Parcial)"
+            else:
+                 status_text = "ONLINE (Base)"
+            status_class = "status-online"
         else:
-            status = f"AVISO {status_code} <0xF0><0x9F><0xAA><0x96>" # Código com erro + ícone robô
-    except requests.exceptions.Timeout:
-        status = "TIMEOUT ⏳"
-    except requests.exceptions.ConnectionError:
-        status = "OFFLINE 👾"
-    except Exception as e:
-        print(f"Erro inesperado ao checar backend: {e}")
-        status = "ERRO ⁉️"
+            status_text = f"Erro {status_code}"
+            status_class = "status-error"
 
-    st.session_state.backend_status = status
+    except requests.exceptions.Timeout:
+        status_text = "Timeout"
+        status_class = "status-offline" # Considerar timeout como offline
+    except requests.exceptions.ConnectionError:
+        status_text = "Offline"
+        status_class = "status-offline"
+    except Exception as e:
+        log.error(f"Erro inesperado ao checar backend: {e}")
+        status_text = "Erro"
+        status_class = "status-error"
+
+    st.session_state.backend_status = status_text
+    st.session_state.backend_status_class = status_class
     st.session_state.last_backend_check = now
-    return status
+    return status_text, status_class
 
 def escape_html_tags(text: str) -> str:
     """Escapa caracteres HTML para exibição segura."""
@@ -505,100 +348,58 @@ def escape_html_tags(text: str) -> str:
         text = str(text)
     return html.escape(text, quote=True)
 
-def scroll_to_bottom_js():
-    """Retorna código JS para rolar a janela para o fim."""
-    # Este JS tenta rolar o contêiner principal do Streamlit. Pode precisar de ajuste.
-    js = """
-    <script>
-        function scrollToBottom() {
-            const mainContainer = window.parent.document.querySelector('.main > div');
-            if (mainContainer) {
-                // Use scrollIntoView on a dummy element at the end if direct scrollHeight doesn't work well
-                // let scrollTarget = window.parent.document.getElementById('scroll-target');
-                // if (!scrollTarget) {
-                //     scrollTarget = window.parent.document.createElement('div');
-                //     scrollTarget.id = 'scroll-target';
-                //     mainContainer.appendChild(scrollTarget);
-                // }
-                // scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'end' });
-
-                // Simpler approach: Scroll the window itself
-                 window.parent.document.documentElement.scrollTop = window.parent.document.documentElement.scrollHeight;
-            }
-        }
-        // Run after a short delay to allow elements to render
-        // setTimeout(scrollToBottom, 150); // Ajuste o delay se necessário
-        // Run immediately - Streamlit reruns might handle timing adequately
-        scrollToBottom();
-    </script>
-    """
-    return js
-
-def apply_theme():
-    """Aplica o CSS do tema selecionado."""
-    theme_name = st.session_state.get("selected_theme", "Cyberpunk")
-    css = THEMES.get(theme_name, CYBERPUNK_CSS)
-    st.markdown(css, unsafe_allow_html=True)
+# <<< REMOVIDO >>> scroll_to_bottom_js() - Streamlit gerencia melhor o scroll agora com chat_message/chat_input
 
 # --- Inicialização do Estado da Sessão ---
 def init_session_state():
     """Inicializa as variáveis do estado da sessão se não existirem."""
     defaults = {
         "start_time": datetime.now(),
-        "history": [], # Renomeado de nash_history para simplicidade
+        "history": [], # Histórico do chat
         "eli_msg_count": 0,
         "nash_msg_count": 0,
-        "is_authenticated": False, # Renomeado de ok
+        "is_authenticated": False, # Status de autenticação
         "backend_status": "N/A",
+        "backend_status_class": "status-checking",
         "last_backend_check": None,
-        "waiting_for_nash": False,
-        "uploaded_file_info": None, # Guarda dict {'name': ..., 'type': ...}
-        "selected_theme": "Cyberpunk",
-        "login_error": None,
-        "auto_scroll": True # Nova opção
+        "waiting_for_nash": False, # Flag para indicar espera por resposta
+        "uploaded_file_info": None, # Info do arquivo anexado {'name': ..., 'type': ..., 'backend_ref': ...}
+        "uploaded_file_id": None,   # ID único do arquivo carregado para evitar re-upload
+        "login_error": None, # Mensagem de erro do login
+        "auto_scroll": True, # Se scrolla automaticamente (pode ser desabilitado)
+        "session_uuid": str(uuid.uuid4()) # ID único para a sessão da UI (pode ser útil)
     }
     for key, default_value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = default_value
+    log.info(f"Estado da sessão inicializado (UUID: {st.session_state.session_uuid}). Autenticado: {st.session_state.is_authenticated}")
 
 # --- Renderização do Visor ---
 def render_visor():
-    """Renderiza o componente do visor superior."""
-    status = check_backend_status()
+    """Renderiza o componente do visor superior com informações."""
+    status, _ = check_backend_status() # Pega só o texto do status
     uptime_delta = datetime.now() - st.session_state.start_time
-    uptime_str = str(timedelta(seconds=int(uptime_delta.total_seconds())))
-    theme_name = st.session_state.selected_theme
-    avatar_emoji = "👨‍🚀"
+    # Formatar uptime de forma mais legível
+    total_seconds = int(uptime_delta.total_seconds())
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    uptime_str = f"{hours:02}:{minutes:02}:{seconds:02}"
 
-    # ASCII art sutil, adaptado para clareza
-    ascii_art = f"""
-Nash Core Systems::..
-----------------------
-Status   : {('OPERATIONAL' if status.startswith('ONLINE') else 'DEGRADED') if st.session_state.is_authenticated else 'LOCKED'}
-Logic    : ACTIVE
-Auth     : {'GRANTED' if st.session_state.is_authenticated else 'PENDING'}
-Session  : {uptime_str}
-    """.strip()
-    safe_ascii_art = escape_html_tags(ascii_art)
-
-    motivations = [
-        "Ready to interface, Commander.", "Calculating optimal sarcasm levels...",
-        "Just compiling the meaning of life. Be right back.", "Remember: I run on caffeine and pure logic.",
-        "Engaging neural net... Stand by for brilliance (or bugs).", "Let's make some digital waves.",
-        "Probability of awesome: High.", "Query received. Processing..."
-    ]
-    random_motivation = escape_html_tags(random.choice(motivations))
+    # Métrica simples de engajamento
+    engagement = st.session_state.eli_msg_count + st.session_state.nash_msg_count
+    engagement_level = "HIGH" if engagement > 10 else ("MEDIUM" if engagement > 3 else "LOW")
 
     visor_html = f"""
     <div id="visor">
-        <span class="nash-avatar-emoji">{avatar_emoji}</span>
+        <span class="nash-avatar-emoji">👨‍🚀</span>
         <div class="visor-content">
             <span class="nash-holo">Nash Copilot</span>
-            <span class="nash-enterprise-tag">:: Eli Digital Command Interface</span>
-            <div class="nash-ascii">{safe_ascii_art}</div>
-            <div class="visor-analytics" title="Session Statistics">
-                Cmds: <b>{st.session_state.eli_msg_count}</b> | Resps: <b>{st.session_state.nash_msg_count}</b><br>
-                <i>"{random_motivation}"</i>
+            <span class="nash-enterprise-tag">Interface de Comando Digital Eli</span>
+            <div class="visor-analytics" title="Estatísticas da Sessão">
+                <span>Sessão: <b>{uptime_str}</b></span> |
+                <span>Cmds: <b>{st.session_state.eli_msg_count}</b></span> |
+                <span>Resps: <b>{st.session_state.nash_msg_count}</b></span> |
+                <span>Engajamento: <i>{engagement_level}</i></span>
             </div>
         </div>
     </div>
@@ -608,203 +409,369 @@ Session  : {uptime_str}
 # --- Lógica de Login ---
 def handle_login():
     """Gerencia a tela e o processo de login."""
-    st.markdown("### Authorization Required")
+    st.markdown("### Autenticação Necessária")
+    st.markdown("Por favor, insira o código de autorização para ativar o Nash.")
+
     if st.session_state.login_error:
-        st.error(st.session_state.login_error)
+        st.error(f"Falha na autenticação: {st.session_state.login_error}")
 
     password = st.text_input(
-        "Enter Command Authorization Code:",
+        "Código de Autorização:",
         type="password",
         key="login_password_input",
-        label_visibility="collapsed",
-        placeholder="Authorization Code..."
+        placeholder="Digite o código aqui...",
+        label_visibility="collapsed"
     )
 
-    if st.button("Authenticate 🛰️", key="login_button", use_container_width=True, disabled=st.session_state.waiting_for_nash):
-        if not password:
-            st.session_state.login_error = "Authorization code cannot be empty."
+    col1, col2 = st.columns([1, 3]) # Coluna para botão e espaço
+    with col1:
+        login_pressed = st.button("Autenticar ✨", key="login_button", use_container_width=True, disabled=st.session_state.waiting_for_nash)
+
+    # Tenta logar se o botão foi pressionado ou se já estava esperando (após rerun)
+    if login_pressed or (st.session_state.waiting_for_nash and not st.session_state.is_authenticated):
+        if not password and login_pressed: # Verifica senha vazia apenas no clique inicial
+            st.session_state.login_error = "O código de autorização não pode estar vazio."
+            st.session_state.waiting_for_nash = False # Resetar flag se falhou antes de tentar
             st.rerun()
 
+        # Marcar que está tentando / esperando
         st.session_state.waiting_for_nash = True
-        st.session_state.login_error = None # Clear previous error
-        st.rerun() # Rerun to show spinner and process
+        st.session_state.login_error = None # Limpar erro anterior
 
-    # Process login attempt after rerun
-    if st.session_state.waiting_for_nash and not st.session_state.is_authenticated:
-        login_success = False
-        try:
-            with st.spinner("Authenticating with Mothership..."):
-                r = requests.post(f"{BACKEND_URL}/login", json={"password": password}, timeout=REQUEST_TIMEOUT)
+        # Mostrar spinner enquanto tenta logar (só aparece após rerun)
+        with st.spinner("Verificando credenciais com o backend..."):
+            login_success = False
+            actual_password = st.session_state.login_password_input # Pega a senha do estado atual
+            try:
+                log.info("Tentando autenticar no backend...")
+                r = requests.post(f"{BACKEND_URL}/login", json={"password": actual_password}, timeout=REQUEST_TIMEOUT)
                 if r.status_code == 200 and r.json().get("success"):
                     st.session_state.is_authenticated = True
                     login_success = True
                     st.session_state.login_error = None
-                    st.toast("Authentication Successful! Protocols unlocked.", icon="✅")
-                    # Não precisa de st.balloons() em interface clean ;)
+                    log.info("Autenticação bem-sucedida!")
+                    st.toast("Autenticação bem-sucedida! Protocolos ativados.", icon="✅")
                 else:
-                    error_msg = r.json().get("msg", f"Authentication Failed (Status: {r.status_code})")
+                    error_msg = r.json().get("msg", f"Falha (Status: {r.status_code})")
                     st.session_state.login_error = escape_html_tags(error_msg)
+                    log.warning(f"Falha na autenticação: {error_msg}")
 
-        except requests.exceptions.RequestException as e:
-            st.session_state.login_error = f"Network error during authentication: {e}"
-        except Exception as e:
-            st.session_state.login_error = f"Unexpected error during authentication: {e}"
-        finally:
-            st.session_state.waiting_for_nash = False
-            if login_success:
-                # Limpar senha do widget após sucesso (requer rerun)
-                # A forma mais segura é usar st.empty() e reconstruir a UI, mas rerun funciona
-                time.sleep(0.5) # Pequena pausa
-                st.rerun()
-            else:
-                st.rerun() # Rerun para mostrar erro
+            except requests.exceptions.RequestException as e:
+                st.session_state.login_error = f"Erro de rede durante autenticação: {e}"
+                log.error(f"Erro de rede na autenticação: {e}")
+            except Exception as e:
+                st.session_state.login_error = f"Erro inesperado durante autenticação: {e}"
+                log.exception("Erro inesperado na autenticação:")
+            finally:
+                st.session_state.waiting_for_nash = False # Terminou a tentativa
+                if login_success:
+                    # Limpar campo de senha visualmente (rerun necessário)
+                    st.session_state.login_password_input = "" # Limpa o valor no estado
+                    time.sleep(0.5) # Pequena pausa para toast
+                    st.rerun()
+                else:
+                    # Apenas reroda para mostrar o erro (ou manter estado se já estava esperando)
+                    st.rerun()
 
     # Se não autenticado, parar aqui
     if not st.session_state.is_authenticated:
         st.stop()
 
+
 # --- Lógica de Upload ---
 def handle_file_upload(upload_status_placeholder):
     """Gerencia o upload de arquivos na sidebar."""
     uploaded_file = st.file_uploader(
-        "📎 Attach Data Link (Optional)",
-        type=[ "jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "svg", # Imagens
-               "py", "txt", "md", "json", "csv", "pdf", "log", "sh", "yaml", "toml", # Texto/Código
-               "mp3", "wav", "ogg", "mp4", "mov", "avi"], # Mídia (se backend suportar)
+        "Anexar Arquivo (Opcional)",
+        # type=[ext.lstrip('.') for ext in ALLOWED_FILE_EXTENSIONS], # Gerar tipos permitidos
         key="file_uploader_widget",
-        label_visibility="visible",
-        help="Upload a file for Nash to analyze with your next command."
+        label_visibility="collapsed", # O título da seção já serve como label
+        help="Anexe um arquivo para análise junto com seu próximo comando."
     )
 
     if uploaded_file is not None:
-        # Verificar se é um arquivo novo para evitar re-upload desnecessário
+        # Verificar se é um arquivo novo para evitar re-upload a cada rerun
+        # Usar nome e tamanho como identificador simples
         current_file_id = f"{uploaded_file.name}-{uploaded_file.size}"
         previous_file_id = st.session_state.get("uploaded_file_id")
 
+        # Processar apenas se for um arquivo diferente do anterior
         if current_file_id != previous_file_id:
             st.session_state.uploaded_file_info = None # Resetar info antiga
+
+            # Validar extensão no frontend também (embora backend valide)
+            file_ext = os.path.splitext(uploaded_file.name)[1].lower()
+            # Reconstruir lista de extensões permitidas para mensagem de erro
+            allowed_ext_list = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff", ".svg",
+                                ".py", ".txt", ".md", ".json", ".csv", ".pdf", ".log", ".sh", ".yaml", ".toml", ".html", ".css", ".js", ".ipynb",
+                                ".mp3", ".wav", ".ogg", ".mp4", ".mov", ".avi", ".webm"} # Exemplo, idealmente viria do backend
+            if file_ext not in allowed_ext_list:
+                 upload_status_placeholder.error(f"Tipo de arquivo '{file_ext}' não permitido.")
+                 st.session_state.uploaded_file_id = None # Marca como não enviado
+                 # Limpar o uploader visualmente (requer rerun com chave diferente ou truque)
+                 # st.session_state.file_uploader_widget = None # Tentar limpar estado (pode não funcionar)
+                 return # Não processa
+
             files = {"file": (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type)}
             try:
-                with upload_status_placeholder, st.spinner(f"Transmitting '{escape_html_tags(uploaded_file.name)}'..."):
+                with upload_status_placeholder, st.spinner(f"Transmitindo '{escape_html_tags(uploaded_file.name)}'..."):
+                    log.info(f"Iniciando upload para backend: {uploaded_file.name} ({uploaded_file.size} bytes)")
                     r = requests.post(f"{BACKEND_URL}/upload", files=files, timeout=REQUEST_TIMEOUT) # Timeout maior para uploads
 
                 if r.status_code == 200:
-                    # Armazenar info do arquivo no estado para anexar ao próximo prompt
+                    response_data = r.json()
                     st.session_state.uploaded_file_info = {
                         "name": uploaded_file.name,
                         "type": uploaded_file.type,
-                        "backend_ref": r.json().get("filename") # Referência do backend se houver
+                        "backend_ref": response_data.get("filename") # Referência do backend
                     }
-                    st.session_state.uploaded_file_id = current_file_id # Marcar como enviado
-                    upload_status_placeholder.success(f"🛰️ '{escape_html_tags(uploaded_file.name)}' linked!")
+                    st.session_state.uploaded_file_id = current_file_id # Marcar como enviado com sucesso
+                    upload_status_placeholder.success(f"✅ '{escape_html_tags(uploaded_file.name)}' anexado!")
+                    log.info(f"Upload bem-sucedido: {response_data.get('filename')}")
                 else:
-                    upload_status_placeholder.error(f"Upload Failed ({r.status_code}): {escape_html_tags(r.text)}")
+                    error_msg = r.json().get("message", r.text)
+                    upload_status_placeholder.error(f"Falha no Upload ({r.status_code}): {escape_html_tags(error_msg)}")
+                    log.error(f"Falha no upload ({r.status_code}): {error_msg}")
                     st.session_state.uploaded_file_info = None
                     st.session_state.uploaded_file_id = None
 
             except requests.exceptions.Timeout:
-                upload_status_placeholder.error("Upload Timeout. File may be too large or network unstable.")
+                upload_status_placeholder.error("Timeout durante o upload. Tente novamente.")
+                log.error("Timeout durante upload.")
                 st.session_state.uploaded_file_info = None
                 st.session_state.uploaded_file_id = None
             except requests.exceptions.RequestException as e:
-                 upload_status_placeholder.error(f"Network Error during upload: {e}")
+                 upload_status_placeholder.error(f"Erro de rede durante upload: {e}")
+                 log.error(f"Erro de rede no upload: {e}")
                  st.session_state.uploaded_file_info = None
                  st.session_state.uploaded_file_id = None
             except Exception as e:
-                upload_status_placeholder.error(f"Unexpected upload error: {e}")
+                upload_status_placeholder.error(f"Erro inesperado no upload: {e}")
+                log.exception("Erro inesperado no upload:")
                 st.session_state.uploaded_file_info = None
                 st.session_state.uploaded_file_id = None
-        # else: # Mesmo arquivo, já foi processado
-             # upload_status_placeholder.info(f"📎 Ready: `{escape_html_tags(uploaded_file.name)}`")
+        # else: # Mesmo arquivo, já foi processado (não precisa fazer nada ou mostrar msg)
+             # upload_status_placeholder.info(f"📎 Anexado: `{escape_html_tags(uploaded_file.name)}`")
 
     elif uploaded_file is None and st.session_state.uploaded_file_info:
-        # Se o uploader foi limpo pelo usuário, limpar o estado
+        # Se o uploader foi limpo pelo usuário (clicou no 'x'), limpar o estado
+        log.info("Arquivo desanexado pelo usuário.")
         st.session_state.uploaded_file_info = None
         st.session_state.uploaded_file_id = None
-        # upload_status_placeholder.empty() # Descomente se quiser limpar a msg de sucesso/info
+        upload_status_placeholder.empty() # Limpa a mensagem de status
 
-    # Mostrar info do arquivo pronto para ser anexado
-    if st.session_state.uploaded_file_info:
-         upload_status_placeholder.info(f"📎 Linked: `{escape_html_tags(st.session_state.uploaded_file_info['name'])}`")
+    # Mostrar info do arquivo pronto para ser anexado (se houver)
+    if st.session_state.uploaded_file_info and uploaded_file: # Mostra só se ainda estiver no uploader
+         upload_status_placeholder.info(f"📎 Pronto: `{escape_html_tags(st.session_state.uploaded_file_info['name'])}`")
+
 
 # --- Renderização da Sidebar ---
 def render_sidebar():
-    """Renderiza a sidebar com controles e informações."""
+    """Renderiza a sidebar com controles, informações e novas ações."""
     with st.sidebar:
-        st.markdown("### 🎨 Interface Theme")
-        theme_options = list(THEMES.keys())
-        current_theme_index = theme_options.index(st.session_state.selected_theme) if st.session_state.selected_theme in theme_options else 0
-        selected_theme_name = st.selectbox(
-            "Select UI Theme:",
-            options=theme_options,
-            key="selected_theme_widget",
-            index=current_theme_index,
-            label_visibility="collapsed"
-        )
-        if selected_theme_name != st.session_state.selected_theme:
-             st.session_state.selected_theme = selected_theme_name
-             st.rerun()
-        add_vertical_space(1)
-
-        st.markdown("### ✨ Cockpit Signals")
-        st.markdown(f"""<div class="sidebar-sign sign-panic" title="Visual Reminder">{SIGN_PANIC_TEXT}</div>""", unsafe_allow_html=True)
-        st.markdown(f"""<div class="sidebar-sign sign-42" title="The Answer.">{SIGN_42_TEXT}</div>""", unsafe_allow_html=True)
-        add_vertical_space(1)
-
-        st.markdown("### 📡 Data Uplink")
+        st.markdown("### 🛰️ Upload de Dados")
         upload_status_placeholder = st.empty() # Placeholder para mensagens de status do upload
         handle_file_upload(upload_status_placeholder)
         add_vertical_space(1)
 
+        # <<< NOVO >>> Ações de Código
+        st.markdown("### 💻 Ações de Código (GitHub)")
+        with st.expander("Ler ou Propor Alterações no Código", expanded=False):
+            st.caption("Interaja diretamente com o código-fonte do Nash no GitHub.")
 
-        st.markdown("### ⚙️ Controls")
-        st.checkbox("Auto-Scroll Chat", key="auto_scroll", help="Automatically scroll to the latest message.")
+            # Ler Arquivo
+            st.markdown("**Ler Arquivo:**")
+            read_file_path = st.text_input("Caminho do Arquivo (e.g., `nash_api.py`)", key="read_code_path", placeholder="src/arquivo.py")
+            if st.button("Ler Conteúdo 📄", key="read_code_btn", use_container_width=True):
+                if read_file_path:
+                    handle_read_code(read_file_path)
+                else:
+                    st.warning("Por favor, insira o caminho do arquivo para leitura.")
+
+            add_vertical_space(1)
+
+            # Propor Mudança
+            st.markdown("**Propor Mudança:**")
+            propose_file_path = st.text_input("Caminho do Arquivo para Modificar", key="propose_code_path", placeholder="nash_utils.py")
+            propose_desc = st.text_area("Descrição da Mudança Solicitada", key="propose_code_desc", placeholder="Ex: Adicionar tratamento para erro X na função Y")
+            # O conteúdo novo será gerado pelo LLM no backend a partir da descrição
+
+            if st.button("Gerar e Propor Mudança ✨", key="propose_code_btn", use_container_width=True):
+                 if propose_file_path and propose_desc:
+                     handle_propose_change(propose_file_path, propose_desc)
+                 else:
+                     st.warning("Por favor, preencha o caminho do arquivo e a descrição da mudança.")
+
         add_vertical_space(1)
 
-        if st.button("🗑️ Clear Session Log", key="clear_chat_btn", help="Delete all messages from this session.", use_container_width=True, type="secondary"):
-             st.session_state.history = []
-             st.session_state.eli_msg_count = 0
-             st.session_state.nash_msg_count = 0
-             st.session_state.uploaded_file_info = None # Limpar info de arquivo
-             st.session_state.uploaded_file_id = None
-             st.toast("🧹 Session log cleared!", icon="✨")
-             time.sleep(0.5) # Pequena pausa para toast
-             st.rerun()
+        st.markdown("### ⚙️ Controles da Sessão")
+        st.checkbox("Scroll Automático", key="auto_scroll", help="Rolar automaticamente para a última mensagem.")
+        if st.button("Limpar Histórico da Sessão", key="clear_chat_btn", help="Apagar todas as mensagens desta sessão.", use_container_width=True, type="secondary"):
+             clear_session() # Chama função para limpar estado
+             st.rerun() # Atualiza a UI
+
         add_vertical_space(2)
 
-        st.markdown("### 🧠 Nash Core Profile")
-        status = st.session_state.backend_status
+        st.markdown("### 🧠 Perfil Nash Core")
+        status_text, status_class = check_backend_status()
+        # <<< MODIFICADO >>> Atualizado com novas capacidades
         profile_html = f"""
         <div class="nash-profile-details">
-            Designation: <b>Nash</b><br>
-            Class: Digital Copilot AI<br>
-            Memory: Vectorized (Pinecone)<br>
-            Backend: <span title="Last check: {st.session_state.last_backend_check}">{status}</span><br>
-            Authentication: <b>{'GRANTED' if st.session_state.is_authenticated else 'REQUIRED'}</b>
+            Designação: <b>Nash</b><br>
+            Classe: Copiloto Digital AI<br>
+            Memória: Vetorizada (Pinecone)<br>
+            Backend: <span title="Última verificação: {st.session_state.last_backend_check}">{status_text}</span><br>
+            Autenticação: <b>{'CONCEDIDA' if st.session_state.is_authenticated else 'REQUERIDA'}</b><br>
+            <b>Capacidades Ativas:</b><br>
+             - Busca Web (Google)<br>
+             - Leitura Código (GitHub)<br>
+             - Proposta Código (GitHub)<br>
         </div>
         """
         st.markdown(profile_html, unsafe_allow_html=True)
+
+# --- <<< NOVO >>> Funções para Ações de Código ---
+def handle_read_code(file_path):
+    """Envia requisição para ler arquivo do GitHub via backend."""
+    st.session_state.waiting_for_nash = True # Usa a mesma flag de espera
+    st.rerun() # Rerun para mostrar spinner
+
+def process_read_code(file_path):
+    """Processa a leitura do código após o rerun."""
+    if not st.session_state.waiting_for_nash: return
+
+    code_content = None
+    error_message = None
+    try:
+        with st.spinner(f"Lendo '{escape_html_tags(file_path)}' do GitHub..."):
+            log.info(f"Enviando pedido /read_code para backend: {file_path}")
+            r = requests.post(f"{BACKEND_URL}/read_code", json={"file_path": file_path}, timeout=REQUEST_TIMEOUT)
+
+            if r.status_code == 200:
+                code_content = r.json().get("content")
+                log.info(f"Conteúdo de '{file_path}' recebido com sucesso.")
+                # Adiciona ao histórico como uma 'resposta' informativa
+                st.session_state.history.append({
+                    "role": "assistant", # Ou um role customizado "system" ou "tool"?
+                    "content": f"**Conteúdo de `{file_path}` lido do GitHub:**\n```python\n{code_content}\n```"
+                })
+                st.session_state.nash_msg_count += 1 # Conta como uma resposta
+            else:
+                error_message = r.json().get("error", f"Erro desconhecido ({r.status_code})")
+                log.error(f"Erro ao ler código via backend ({r.status_code}): {error_message}")
+
+    except requests.exceptions.RequestException as e:
+        error_message = f"Erro de rede ao contatar o backend: {e}"
+        log.error(f"Erro de rede em /read_code: {e}")
+    except Exception as e:
+        error_message = f"Erro inesperado: {e}"
+        log.exception("Erro inesperado em process_read_code:")
+    finally:
+        if error_message:
+             st.session_state.history.append({
+                 "role": "assistant",
+                 "content": f"**Falha ao ler `{file_path}`:**\n```\n{escape_html_tags(error_message)}\n```"
+             })
+             st.session_state.nash_msg_count += 1
+        st.session_state.waiting_for_nash = False
+        st.rerun() # Rerun final para exibir o conteúdo ou erro
+
+def handle_propose_change(file_path, description):
+    """Envia requisição para propor mudança no GitHub via backend."""
+    # Guardar os parâmetros para usar após o rerun
+    st.session_state.propose_params = {"file_path": file_path, "description": description}
+    st.session_state.waiting_for_nash = True
+    st.rerun()
+
+def process_propose_change():
+    """Processa a proposta de mudança após o rerun."""
+    if not st.session_state.waiting_for_nash or "propose_params" not in st.session_state:
+        st.session_state.waiting_for_nash = False # Limpa flag se params sumiram
+        return
+
+    params = st.session_state.propose_params
+    file_path = params["file_path"]
+    description = params["description"]
+    response_message = None
+    error_message = None
+
+    try:
+        spinner_msg = f"Gerando e propondo mudanças para '{escape_html_tags(file_path)}'..."
+        with st.spinner(spinner_msg):
+            log.info(f"Enviando pedido /propose_code_change para backend: {file_path}")
+            payload = {"file_path": file_path, "description": description}
+            # Adicionar base_branch se necessário: payload["base_branch"] = "develop"
+            r = requests.post(f"{BACKEND_URL}/propose_code_change", json=payload, timeout=(10, 120)) # Timeout maior para LLM + Git
+
+            if r.status_code == 200:
+                result = r.json()
+                response_message = f"✅ **Proposta de mudança criada com sucesso!**\n" \
+                                   f"- **Arquivo:** `{result.get('file_path')}`\n" \
+                                   f"- **Branch:** `{result.get('branch')}`\n" \
+                                   f"- **Commit:** `{result.get('commit_sha', 'N/A')[:7]}`\n" \
+                                   f"*Revise e faça o merge no GitHub quando estiver pronto.*"
+                log.info(f"Proposta de mudança criada: Branch {result.get('branch')}")
+            else:
+                error_message = r.json().get("error", f"Erro desconhecido ({r.status_code})")
+                log.error(f"Erro ao propor mudança via backend ({r.status_code}): {error_message}")
+
+    except requests.exceptions.Timeout:
+        error_message = "Timeout: A geração ou proposta da mudança demorou demais."
+        log.error("Timeout em /propose_code_change.")
+    except requests.exceptions.RequestException as e:
+        error_message = f"Erro de rede ao contatar o backend: {e}"
+        log.error(f"Erro de rede em /propose_code_change: {e}")
+    except Exception as e:
+        error_message = f"Erro inesperado: {e}"
+        log.exception("Erro inesperado em process_propose_change:")
+    finally:
+        if response_message:
+            st.session_state.history.append({"role": "assistant", "content": response_message})
+            st.session_state.nash_msg_count += 1
+        elif error_message:
+             st.session_state.history.append({
+                 "role": "assistant",
+                 "content": f"**Falha ao propor mudança para `{file_path}`:**\n```\n{escape_html_tags(error_message)}\n```"
+             })
+             st.session_state.nash_msg_count += 1
+        # Limpar parâmetros e flag de espera
+        st.session_state.waiting_for_nash = False
+        if "propose_params" in st.session_state:
+            del st.session_state.propose_params
+        st.rerun() # Rerun final para exibir o resultado
+
+# --- Limpeza da Sessão ---
+def clear_session():
+     """Limpa o histórico e contadores da sessão."""
+     st.session_state.history = []
+     st.session_state.eli_msg_count = 0
+     st.session_state.nash_msg_count = 0
+     st.session_state.uploaded_file_info = None
+     st.session_state.uploaded_file_id = None
+     # Poderia resetar outros estados se necessário
+     log.info("Histórico da sessão limpo.")
+     st.toast("🧹 Histórico da sessão limpo!", icon="✨")
+     time.sleep(0.5)
 
 # --- Renderização do Histórico ---
 def render_history(chat_container):
     """Renderiza o histórico de mensagens no container fornecido."""
     with chat_container:
         if not st.session_state.history:
-             st.markdown("> *Command console awaiting input... Engage when ready.*")
+             st.markdown("> *Console de comando aguardando input... Digite sua instrução abaixo.*")
              return # Sai se não há histórico
 
         for i, message in enumerate(st.session_state.history):
             role = message["role"] # "user" or "assistant"
             content = message["content"]
             avatar = "🧑‍🚀" if role == "user" else "👨‍🚀" # Eli | Nash
+            # Usar key única para cada mensagem ajuda Streamlit a gerenciar o estado
             with st.chat_message(role, avatar=avatar):
-                # Renderiza o conteúdo como Markdown (Streamlit lida com code blocks etc.)
-                st.markdown(content, unsafe_allow_html=False) # False é mais seguro
+                # Renderiza o conteúdo como Markdown
+                # unsafe_allow_html=True pode ser necessário para HTML específico, mas False é mais seguro
+                st.markdown(content, unsafe_allow_html=False)
 
-    # Aplica auto-scroll se habilitado e não estiver esperando resposta
-    if st.session_state.auto_scroll and not st.session_state.waiting_for_nash:
-        st.components.v1.html(scroll_to_bottom_js(), height=0, scrolling=False)
-
+    # <<< REMOVIDO >>> JS de scroll - Deixar Streamlit gerenciar
 
 # --- Envio de Prompt e Comunicação com Backend ---
 def handle_chat_input(prompt: str):
@@ -812,68 +779,81 @@ def handle_chat_input(prompt: str):
     if not prompt:
         return # Não faz nada se o prompt estiver vazio
 
-    # Adiciona mensagem do usuário ao histórico
+    log.debug(f"Usuário digitou: {prompt[:50]}...")
+    # Adiciona mensagem do usuário ao histórico imediatamente
     st.session_state.history.append({"role": "user", "content": prompt})
     st.session_state.eli_msg_count += 1
 
     # Prepara payload para backend
-    payload = {"prompt": prompt, "session_id": "eli"} # Usando "eli" como ID fixo por enquanto
+    payload = {"prompt": prompt, "session_id": st.session_state.session_uuid} # Usar UUID da sessão
 
     # Anexa informação do arquivo se houver
     if st.session_state.uploaded_file_info:
-        # Enviar apenas metadados; backend já deve ter o arquivo pelo /upload
+        # O backend precisa saber como usar essa info (ex: ler do /uploads/<backend_ref>)
         payload["attachment_info"] = {
             "filename": st.session_state.uploaded_file_info["name"],
-            "type": st.session_state.uploaded_file_info["type"]
+            "type": st.session_state.uploaded_file_info["type"],
+            "backend_ref": st.session_state.uploaded_file_info["backend_ref"]
         }
-        # Limpa info do arquivo após anexar ao prompt (para não anexar de novo)
+        log.info(f"Anexando info do arquivo ao prompt: {st.session_state.uploaded_file_info['name']}")
+        # Limpa info do arquivo após anexar ao prompt (para não anexar de novo automaticamente)
         st.session_state.uploaded_file_info = None
         st.session_state.uploaded_file_id = None
-
+        # Limpar o widget de upload visualmente é complicado, usuário pode precisar re-anexar
 
     # Marca que está esperando e reroda para mostrar mensagem do usuário + spinner
     st.session_state.waiting_for_nash = True
     st.rerun()
 
-# --- Lógica Principal pós-rerun para buscar resposta ---
+# --- Lógica Principal pós-rerun para buscar resposta do Chat ---
 def fetch_nash_response():
     """Chamado após rerun se waiting_for_nash for True. Busca resposta do backend."""
     if not st.session_state.waiting_for_nash:
-        return # Só executa se estiver esperando
+        return # Só executa se estiver esperando resposta do chat
 
+    # Pega a última mensagem do usuário para reenviar (backend pode não ter histórico completo)
     last_user_message = next((msg for msg in reversed(st.session_state.history) if msg["role"] == "user"), None)
     if not last_user_message:
+        log.error("Não foi possível encontrar a última mensagem do usuário no histórico.")
         st.session_state.waiting_for_nash = False
-        return # Não deveria acontecer, mas evita erro
+        # Adicionar mensagem de erro ao histórico?
+        st.session_state.history.append({"role": "assistant", "content": "[Erro Interno da UI: Não encontrei sua última mensagem para enviar ao Nash.]"})
+        st.rerun()
+        return
 
-    # Reconstruir payload (importante se o state foi modificado)
-    payload = {"prompt": last_user_message["content"], "session_id": "eli"}
-    # A informação do anexo já foi limpa, então não precisa reenviar aqui.
+    # Reconstrói payload (sem anexo, já foi tratado no handle_chat_input)
+    payload = {"prompt": last_user_message["content"], "session_id": st.session_state.session_uuid}
+    log.info(f"Enviando prompt para /chat backend: {payload['prompt'][:50]}...")
 
     response_content = ""
     try:
         # Exibe spinner DENTRO da mensagem de "pensando" do Nash
         with st.chat_message("assistant", avatar="👨‍🚀"):
-            with st.spinner("Nash is processing..."):
+            with st.spinner("Nash está processando seu comando..."):
                 req = requests.post(f"{BACKEND_URL}/chat", json=payload, timeout=REQUEST_TIMEOUT)
 
                 if req.status_code == 200:
-                    response_content = req.json().get("response", "[Nash returned an empty response.]")
+                    response_content = req.json().get("response", "[Nash não retornou uma resposta textual.]")
+                    log.info(f"Resposta recebida do /chat: {response_content[:50]}...")
                     st.session_state.nash_msg_count += 1
                 else:
                     try: error_payload = req.json().get("error", req.text)
-                    except ValueError: error_payload = req.text
-                    response_content = f"**[Backend Error {req.status_code}]**\n```\n{escape_html_tags(str(error_payload)[:200])}\n```" # Limita tamanho
+                    except ValueError: error_payload = req.text # Se não for JSON
+                    response_content = f"**[Erro do Backend {req.status_code}]**\nOcorreu um problema ao processar seu pedido:\n```\n{escape_html_tags(str(error_payload)[:300])}\n```" # Limita tamanho
+                    log.error(f"Erro do backend /chat ({req.status_code}): {error_payload}")
                     st.session_state.nash_msg_count += 1 # Conta erro como resposta
 
     except requests.exceptions.Timeout:
-        response_content = "[Request Timeout] Nash took too long to respond. Try again later."
+        response_content = "[Timeout da Requisição] Nash demorou muito para responder. Verifique o status do backend ou tente novamente."
+        log.error("Timeout ao chamar /chat backend.")
         st.session_state.nash_msg_count += 1
     except requests.exceptions.RequestException as e:
-        response_content = f"[Network Error] Could not reach Nash's core.\n```\n{escape_html_tags(str(e))}\n```"
+        response_content = f"[Erro de Rede] Não foi possível conectar ao núcleo do Nash.\n```\n{escape_html_tags(str(e))}\n```"
+        log.error(f"Erro de rede ao chamar /chat: {e}")
         st.session_state.nash_msg_count += 1
     except Exception as e:
-        response_content = f"[Client Error] An unexpected issue occurred.\n```\n{escape_html_tags(str(e))}\n```"
+        response_content = f"[Erro Inesperado na UI] Ocorreu um problema ao buscar a resposta.\n```\n{escape_html_tags(str(e))}\n```"
+        log.exception("Erro inesperado em fetch_nash_response:")
         st.session_state.nash_msg_count += 1
     finally:
         st.session_state.history.append({"role": "assistant", "content": response_content})
@@ -884,39 +864,108 @@ def fetch_nash_response():
 
 # --- Função Principal da Aplicação ---
 def main():
+    """Função principal que organiza a UI do Streamlit."""
     st.set_page_config(page_title="Nash Copilot", page_icon="👨‍🚀", layout="wide")
-    init_session_state()
-    apply_theme()
 
-    # Status flutuante (atualizado no início)
-    current_backend_status = check_backend_status()
-    st.markdown(f"<div id='backend-status' title='Nash Backend Status'>Backend: {current_backend_status}</div>", unsafe_allow_html=True)
+    # Inicializa logger para UI (se não feito globalmente)
+    global log
+    log = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(name)s:%(message)s')
 
-    # Renderiza Sidebar
+    # Aplica o CSS moderno
+    st.markdown(MODERN_LIGHT_CSS, unsafe_allow_html=True)
+
+    init_session_state() # Garante que o estado da sessão existe
+
+    # Status flutuante (atualizado no início de cada run)
+    status_text, status_class = check_backend_status()
+    st.markdown(f"""
+    <div id='backend-status' title='Status do Backend Nash'>
+        <span class="status-dot {status_class}"></span>
+        Backend: {status_text}
+    </div>""", unsafe_allow_html=True)
+
+    # Renderiza Sidebar (sempre visível)
     render_sidebar()
 
-    # Lógica de Autenticação
+    # Lógica de Autenticação / Bloqueio
     if not st.session_state.is_authenticated:
-        handle_login()
-        st.stop() # Para aqui se não autenticado
+        handle_login() # Função cuida do input, botão, chamada e st.stop()
+        # O código abaixo só roda se handle_login *não* chamar st.stop()
+        # (ou seja, após autenticação bem-sucedida e rerun)
 
-    # Área Principal (Visor + Chat)
+    # Área Principal (Visor + Chat) - Só mostra se autenticado
     render_visor()
 
-    # Container para o histórico de chat
+    # Container para o histórico de chat (altura pode ser ajustada se necessário)
+    # chat_container = st.container(height=600) # Exemplo com altura fixa
     chat_container = st.container()
     render_history(chat_container) # Renderiza o histórico atual
 
-    # Input de Chat (Usando st.chat_input)
-    if prompt := st.chat_input("Enter command for Nash...", key="chat_input_widget", disabled=st.session_state.waiting_for_nash):
+    # Lógica pós-rerun para ações pendentes (chat, leitura de código, proposta de mudança)
+    # A flag waiting_for_nash agora diferencia qual ação está pendente (implícito pelo estado)
+    if st.session_state.waiting_for_nash:
+        if "propose_params" in st.session_state:
+             process_propose_change()
+        elif st.session_state.get("read_code_path_pending"): # Necessário um marcador se não tiver params
+             # Implementar process_read_code() - Assumindo que foi chamado por handle_read_code()
+             # Deveria ter o file_path no estado
+             # process_read_code(st.session_state.read_code_path_pending) # Exemplo
+             pass # Adicionar lógica de chamada para process_read_code aqui
+        else:
+            # Assume que é uma resposta de chat pendente
+            fetch_nash_response()
+
+    # Input de Chat (Usando st.chat_input) - Deve ser o último elemento interativo principal
+    if prompt := st.chat_input("Digite seu comando para Nash...", key="chat_input_widget", disabled=st.session_state.waiting_for_nash):
         handle_chat_input(prompt)
 
-    # Se estiver esperando resposta do Nash, chama a função para buscar
-    if st.session_state.waiting_for_nash:
-        fetch_nash_response()
 
 # --- Execução ---
 if __name__ == "__main__":
+    # Definir log global aqui se necessário
+    log = logging.getLogger(__name__)
     main()
 
-# --- END OF FILE nash_ui.py (Refatorado) ---
+# --- END OF FILE nash_ui.py ---
+```
+
+**4. Backend Requirements (requirements_backend.txt)**
+```text
+flask>=2.0 # Use uma versão recente
+openai>=1.0 # Importante usar v1.x ou superior
+pinecone-client>=3.0 # Ou a versão compatível com seu plano
+python-dotenv>=0.19
+requests>=2.25
+PyGithub>=1.55 # Ou mais recente
+google-api-python-client>=2.0
+google-auth-httplib2>=0.1
+google-auth-oauthlib>=0.5
+gunicorn>=20.0 # Recomendado para produção com Flask no Railway
+Werkzeug>=2.0 # Dependência do Flask, especificar pode ajudar
+```
+
+**5. Frontend Requirements (requirements_frontend.txt)**
+```text
+streamlit>=1.28 # Use uma versão recente
+requests>=2.25 # Para comunicação com backend
+streamlit-extras>=0.3 # Se continuar usando add_vertical_space ou outros
+# Não precisa de Flask, OpenAI, Pinecone, etc. aqui
+```
+
+**Observações Importantes:**
+
+1.  **Arquivo `nash_memory_init.md`:** Você *precisa* atualizar este arquivo (que não foi fornecido) para incluir a descrição das novas capacidades do Nash (busca web, leitura/proposta de código) e como ele deve indicar o uso dessas ferramentas (com os marcadores `[SEARCH]` e `[READ_CODE]`). Isso é crucial para a "autoconsciência" dele. O código em `nash_utils.py` agora fornece um fallback se o arquivo não for encontrado.
+2.  **Geração de Código (Proposta):** A função `propose_github_change` no backend agora inclui uma chamada ao LLM (`o4-mini`) para gerar o novo conteúdo do código baseado na descrição fornecida pela UI. Isso pode precisar de ajustes no prompt ou até de um modelo mais capaz (como GPT-4o) para gerar código complexo e correto. Teste essa funcionalidade com cuidado.
+3.  **Segurança:** Reforço a importância de proteger suas chaves de API e o PAT do GitHub. Nunca os exponha no código-fonte. Use as variáveis de ambiente do Railway. O fluxo de propor mudanças em *novas branches* é uma medida de segurança essencial.
+4.  **Tratamento de Erros:** Adicionei mais logging e tratamento básico de erros, mas revise e melhore conforme necessário para robustez.
+5.  **Teste:** Como não pude executar o código, teste exaustivamente no seu ambiente:
+    *   Login.
+    *   Chat básico.
+    *   Chat que *deveria* acionar a busca web (use palavras como "pesquise por", "qual a capital de...", "notícias sobre X").
+    *   Chat que *deveria* acionar a leitura de código (peça "leia o arquivo nash_api.py").
+    *   Use os botões na sidebar para ler e propor mudanças no código. Verifique as branches criadas no GitHub.
+    *   Upload de arquivos.
+6.  **Modelo LLM:** O `o4-mini` pode ter dificuldade em seguir instruções complexas como "gere este marcador específico para usar a ferramenta" ou "gere este código modificado". Se os resultados não forem bons, considere experimentar um modelo mais avançado como `gpt-4o-mini` ou `gpt-4o` quando decidir migrar.
+
+Estou animado para ver o Nash evoluir com essas novas capacidades! Faça os testes e me diga se encontrar algum problema ou precisar de ajustes. Engage! 👨‍🚀💻🌐
