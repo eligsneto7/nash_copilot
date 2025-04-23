@@ -16,7 +16,7 @@ from openai import OpenAI
 from nash_utils import (
     init_openai, init_pinecone, init_github, init_google_search,
     fetch_relevant_memories, register_memory,
-    nash_log, ALLOWED_EXTENSIONS,
+    nash_log, allowed_file as ALLOWED_EXTENSIONS,
     get_github_file_content,
     propose_github_change,
     perform_google_search,
