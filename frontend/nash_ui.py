@@ -148,24 +148,37 @@ body::before { /* Overlay sutil de chuva/estática */
 .stFileUploader button { display: none !important; } /* Oculta botão default */
 
 /* --- Histórico de Chat (st.chat_message) --- */
-.stChatMessage {
-    background: color-mix(in srgb, var(--cyber-input-bg), transparent 30%);
-    border: 1px solid transparent; /* Borda sutil ou nenhuma */
-    border-left: 3px solid; /* Será colorida por role */
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    padding: 0.75rem 1rem;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    gap: 0.75rem !important; /* Espaçamento entre avatar e msg */
-}
-/* Mensagens do Usuário (Eli) */
-.stChatMessage[data-testid="chatAvatarIcon-user"] + div { border-left-color: var(--cyber-secondary); }
-.stChatMessage[data-testid="chatAvatarIcon-user"] .stMarkdown p,
-.stChatMessage[data-testid="chatAvatarIcon-user"] .stCodeBlock code { color: var(--cyber-text); }
-/* Mensagens do Assistente (Nash) */
-.stChatMessage[data-testid="chatAvatarIcon-assistant"] + div { border-left-color: var(--cyber-primary); }
-.stChatMessage[data-testid="chatAvatarIcon-assistant"] .stMarkdown p,
-.stChatMessage[data-testid="chatAvatarIcon-assistant"] .stCodeBlock code { color: var(--cyber-text); } /* Ajuste a cor se necessário */
+    /* --- Histórico de Chat (st.chat_message) --- */
+    .stChatMessage {
+        /* Optional: Make base background very subtle or remove if setting below */
+        background: rgba(16, 18, 37, 0.6); /* Example: Darker, slightly transparent base */
+        border: 1px solid transparent;
+        border-left: 3px solid; /* Color still set below */
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        padding: 0.75rem 1rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        gap: 0.75rem !important;
+    }
+
+    /* Mensagens do Usuário (Eli) */
+    /* Target the container directly */
+    .stChatMessage[data-testid="chatAvatarIcon-user"] {
+        background: #251523; /* Example: Dark purple/magenta tint for user */
+        border-left-color: var(--cyber-secondary); /* Keep the border color distinct */
+    }
+    .stChatMessage[data-testid="chatAvatarIcon-user"] .stMarkdown p,
+    .stChatMessage[data-testid="chatAvatarIcon-user"] .stCodeBlock code { color: var(--cyber-text); }
+
+
+    /* Mensagens do Assistente (Nash) */
+    /* Target the container directly */
+    .stChatMessage[data-testid="chatAvatarIcon-assistant"] {
+         background: #152523; /* Example: Dark teal/green tint for assistant */
+         border-left-color: var(--cyber-primary); /* Keep the border color distinct */
+    }
+    .stChatMessage[data-testid="chatAvatarIcon-assistant"] .stMarkdown p,
+    .stChatMessage[data-testid="chatAvatarIcon-assistant"] .stCodeBlock code { color: var(--cyber-text); } /* Ajuste a cor se necessário */
 /* Links */
 .stChatMessage .stMarkdown a {
     color: var(--cyber-accent); text-decoration: underline; text-decoration-style: dashed; text-underline-offset: 3px;
