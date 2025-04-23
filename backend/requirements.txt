@@ -1,6 +1,6 @@
 flask>=2.0 # Use uma versão recente
 openai>=1.0 # Importante usar v1.x ou superior
-pinecone-client>=3.0 # Ou a versão compatível com seu plano
+pinecone>=3.0 # Ou a versão compatível com seu plano
 python-dotenv>=0.19
 requests>=2.25
 PyGithub>=1.55 # Ou mais recente
