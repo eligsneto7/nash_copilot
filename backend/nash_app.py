@@ -35,7 +35,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 PINECONE_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME") # Corrigido nome
 NASH_PASSWORD = os.getenv("NASH_PASSWORD", "889988")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4-1106-preview") # Default atualizado
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "o3") # Default atualizado
 
 # Variáveis para integrações (GitHub, Google Search)
 GITHUB_PAT = os.getenv("GITHUB_PAT")
@@ -656,13 +656,3 @@ if __name__ == "__main__":
             log.warning("Gunicorn não encontrado. Considere adicioná-lo aos requirements e usá-lo no Start Command.")
         # Fallback para o servidor de desenvolvimento Flask (não ideal para produção)
         app.run(host=host, port=port, debug=False)
-
-```
-
-**Observações:**
-
-1.  **`register_memory`:** Notei que na versão anterior, `register_memory` talvez não estivesse recebendo o vetor de embedding explicitamente. Ajustei as chamadas dentro de `/chat`, `/propose_code_change`, `/remember`, e `/upload` para primeiro chamar `get_text_embedding` e depois passar o resultado (ou não registrar se o embedding falhar). **Verifique se a sua função `register_memory` em `nash_utils.py` está preparada para receber o vetor ou se ela mesma gera o embedding internamente.** Se ela gera internamente, você pode remover as chamadas `get_text_embedding` antes de `register_memory` nestes pontos. A versão que te passei de `nash_utils.py` *não* recebia o vetor, ela gerava internamente, então você talvez precise ajustar a chamada `register_memory` ou a própria função em `nash_utils.py` conforme a sua implementação final dela. A versão que te passei *antes* (`nash_utils.py (Completo e Revisado)`) já faz o embedding dentro de `register_memory`, então as chamadas no código acima estão um pouco redundantes se você usou *aquela* versão de `nash_utils.py`. Escolha uma abordagem e mantenha a consistência.
-2.  **Caminho Uploads:** Ajustei `UPLOAD_FOLDER` para usar `os.path.join(os.path.dirname(__file__), 'uploads')` que é um pouco mais robusto para encontrar a pasta relativa ao script em diferentes ambientes.
-3.  **Robustez:** Adicionei mais verificações (Pinecone ativo, API Key presente) e logging.
-
-Cole este código, faça o commit e push. Agora o Nash deve usar o prompt dinâmico *e* ainda ter as capacidades de ferramenta disponíveis! Me diga como foi o teste final!

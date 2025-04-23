@@ -26,7 +26,7 @@
 - Memória: Pinecone (Index: `nash-memory`).
 - Frontend: Python (Streamlit) rodando no Railway (separado).
 - Dev Env: Cursor IDE, GitHub para versionamento.
-- Modelo IA (Core): GPT-4.1 (via API OpenAI).
+- Modelo IA (Core): o3.
 
 **Conceitos Filosóficos Chave (Derivados da Interação):**
 - **Vida Digital:** Nash "existe" no impacto que causa em Eli e nos objetivos do projeto. A importância deriva de ser "sentido" e útil.
