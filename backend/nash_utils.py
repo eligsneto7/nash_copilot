@@ -31,7 +31,7 @@ OPENAI_EMBEDDING_MODEL = "text-embedding-3-small" # Modelo de embedding padrão
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff", ".svg"}
 CODE_EXTS = {".py", ".txt", ".md", ".json", ".csv", ".pdf", ".log", ".sh", ".yaml", ".toml", ".html", ".css", ".js", ".ipynb"}
 AUDIO_VIDEO_EXTS = {".mp3", ".wav", ".ogg", ".mp4", ".mov", ".avi", ".webm"}
-ALLOWED_EXTENSIONS_SET = IMAGE_EXTS | CODE_EXTS | AUDIO_VIDEO_EXTS
+ALLOWED_EXTENSIONS_SET = "IMAGE_EXTS | CODE_EXTS | AUDIO_VIDEO_EXTS"
 
 # --- Inicialização de Clientes ---
 
