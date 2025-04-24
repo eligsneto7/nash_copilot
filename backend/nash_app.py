@@ -222,7 +222,7 @@ def process_llm_tool_use(response_content: str, user_message: str):
 
                 # Chama o LLM novamente com os resultados da busca usando o NOVO prompt dinâmico
                 messages = build_dynamic_nash_prompt(user_message, search_results=search_results, code_content=code_content)
-                completion = client.chat.completions.create(model=OPENAI_MODEL, messages=messages, timeout=45) # Timeout maior para re-prompt
+                completion = client.chat.completions.create(model=OPENAI_MODEL, messages=messages, timeout=300) # Timeout maior para re-prompt
                 final_response = completion.choices[0].message.content.strip()
                 log.info("LLM chamado novamente com resultados da busca (ferramenta).")
                 continue # Recomeça o loop para checar a nova resposta
@@ -245,7 +245,7 @@ def process_llm_tool_use(response_content: str, user_message: str):
 
                 # Chama o LLM novamente com o conteúdo do código usando o NOVO prompt dinâmico
                 messages = build_dynamic_nash_prompt(user_message, search_results=search_results, code_content=code_content)
-                completion = client.chat.completions.create(model=OPENAI_MODEL, messages=messages, timeout=45)
+                completion = client.chat.completions.create(model=OPENAI_MODEL, messages=messages, timeout=300)
                 final_response = completion.choices[0].message.content.strip()
                 log.info("LLM chamado novamente com conteúdo do código (ferramenta).")
                 continue
@@ -329,7 +329,7 @@ def chat():
             model=OPENAI_MODEL,
             messages=messages,
             # temperature=0.75, # <-- REMOVIDA!
-            timeout=40, # Timeout inicial
+            timeout=300, # Timeout inicial
         )
         initial_answer = completion.choices[0].message.content.strip()
         log.info(f"Resposta inicial recebida da OpenAI: '{initial_answer[:80]}...'")
@@ -437,7 +437,7 @@ def propose_code_change_endpoint():
              model=OPENAI_MODEL, # Idealmente um modelo bom com código (GPT-4o, etc)
              messages=[{"role": "user", "content": prompt_for_change}],
              temperature=0.1, # Bem determinístico para código
-             timeout=90 # Timeout maior para geração de código
+             timeout=300 # Timeout maior para geração de código
         )
         generated_code_block = completion.choices[0].message.content.strip()
 
