@@ -1,14 +1,22 @@
 # --- START OF FILE nash_ui.py ---
 
-import os, sys
+import os
+import sys
+from pathlib import Path
 
-# 1) Injeta /app/backend no path ANTES de tentar importar dali
-HERE        = os.path.dirname(__file__)
-BACKEND_DIR = os.path.normpath(os.path.join(HERE, os.pardir, "backend"))
-if BACKEND_DIR not in sys.path:
-    sys.path.insert(0, BACKEND_DIR)
+# 1) Descobre e injeta o diretório que contém nash_utils.py
+HERE = Path(__file__).resolve().parent
+CANDIDATE_DIRS = [
+    HERE / "backend",          # cenário dev: ./frontend/backend
+    HERE.parent / "backend",   # cenário prod:  /app/backend
+    HERE                       # fallback se nash_utils estiver ao lado
+]
+for candidate in CANDIDATE_DIRS:
+    if (candidate / "nash_utils.py").exists():
+        sys.path.insert(0, str(candidate))
+        break
 
-# 2) Agora sim importa nash_utils
+# 2) Agora podemos importar as utilidades do Nash
 from nash_utils import (
     init_openai,
     init_pinecone,
@@ -23,10 +31,10 @@ from nash_utils import (
     get_github_file_content,
     propose_github_change,
     perform_google_search,
-    get_text_embedding
+    get_text_embedding,
 )
 
-# 3) Aí seguem seus outros imports
+# 3) Demais imports da UI
 import streamlit as st
 import requests
 import time
