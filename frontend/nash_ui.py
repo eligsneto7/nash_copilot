@@ -521,7 +521,7 @@ def handle_login():
                 finally:
                     st.session_state.waiting_for_nash = False # Terminou a tentativa
                     if login_success:
-                        # Limpar campo de senha visualmente (rerun necessário)
+                        # Limpar campo de senha visualmente (rerun necessário) #linhalimpa
                         time.sleep(0.5) # Pequena pausa para toast
                         st.rerun()
                     else:
