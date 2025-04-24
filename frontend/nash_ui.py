@@ -1,15 +1,15 @@
 # --- START OF FILE nash_ui.py (Refatorado e Traduzido) ---
 
-import streamlit as st
-import requests
-import time
-import os, sys
-import random
-import html
-import uuid # Usado para keys únicas se necessário
-from datetime import datetime, timedelta
-from streamlit_extras.add_vertical_space import add_vertical_space
-import json # Para exibir conteúdo de código formatado
+import os
+import sys
+
+# 1) Injeta o /backend no path antes de tentar importar qualquer coisa dele
+HERE        = os.path.dirname(__file__)
+BACKEND_DIR = os.path.join(HERE, "backend")
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
+# 2) Agora sim import dos seus módulos
 from nash_utils import (
     init_openai,
     init_pinecone,
@@ -27,10 +27,16 @@ from nash_utils import (
     get_text_embedding
 )
 
-HERE = os.path.dirname(__file__)
-BACKEND_DIR = os.path.join(HERE, "backend")
-if BACKEND_DIR not in sys.path:
-    sys.path.insert(0, BACKEND_DIR)
+import streamlit as st
+import requests
+import time
+import random
+import html
+import uuid  # Usado para keys únicas se necessário
+from datetime import datetime, timedelta
+from streamlit_extras.add_vertical_space import add_vertical_space
+import json  # Para exibir conteúdo de código formatado
+
 # --- Constantes ---
 # Use st.secrets para produção ou variáveis de ambiente para o URL do backend
 # BACKEND_URL = st.secrets.get("BACKEND_URL", "https://nashcopilot-production.up.railway.app")
