@@ -308,12 +308,13 @@ def chat():
         log.warning("Recebido prompt vazio na rota /chat.")
         return jsonify({"error": "Prompt vazio não permitido."}), 400
 
+    # Pinecone check (agora deve passar!)
     if not pinecone_index:
-         log.error("Tentativa de chat sem Pinecone inicializado.")
-         return jsonify({"error": "Erro interno: Serviço de memória indisponível."}), 503
+         log.error("Tentativa de chat sem Pinecone inicializado (ERRO INESPERADO APÓS CORREÇÕES).") # Mensagem de erro atualizada
+         return jsonify({"error": "Erro interno: Serviço de memória indisponível persistentemente."}), 503
 
     try:
-        # 1. Monta o prompt inicial usando a nova função dinâmica
+        # 1. Monta o prompt inicial
         messages = build_dynamic_nash_prompt(user_message)
 
         # 2. Faz a primeira chamada ao LLM
@@ -323,10 +324,11 @@ def chat():
         client = OpenAI(api_key=OPENAI_API_KEY)
 
         log.info(f"Enviando request inicial para OpenAI modelo: {OPENAI_MODEL}")
+        # <<< CORREÇÃO APLICADA AQUI >>> Linha 'temperature' removida
         completion = client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=messages,
-            temperature=0.75,
+            # temperature=0.75, # <-- REMOVIDA!
             timeout=40, # Timeout inicial
         )
         initial_answer = completion.choices[0].message.content.strip()
@@ -336,14 +338,13 @@ def chat():
         final_answer = process_llm_tool_use(initial_answer, user_message)
         log.info(f"Resposta final após processamento de ferramentas: '{final_answer[:80]}...'")
 
-
-        # 4. Registra a interação (prompt original + resposta FINAL) na memória
+        # 4. Registra a interação na memória
         if pinecone_index:
             try:
-                # <<< MODIFICADO >>> Usar get_text_embedding para o vetor de registro
                 embedding_vector = get_text_embedding(user_message)
                 if embedding_vector:
-                     register_memory(pinecone_index, session_id, user_message, final_answer, tag="chat") # Assumindo que register_memory agora recebe o vetor
+                     # Passando o objeto index correto
+                     register_memory(pinecone_index, session_id, user_message, final_answer, tag="chat", embedding_vector=embedding_vector) # Passa o vetor pré-calculado
                      log.info("Interação registrada na memória Pinecone.")
                 else:
                      log.warning("Não foi possível gerar embedding para registrar memória.")
@@ -355,6 +356,13 @@ def chat():
 
         return jsonify({"response": final_answer})
 
+    except OpenAIError as openai_err: # Captura erros específicos da OpenAI
+        log.exception(f"Erro da API OpenAI na rota /chat: {openai_err}")
+        # Retorna a mensagem de erro da OpenAI para o cliente, se disponível
+        error_details = str(openai_err)
+        if hasattr(openai_err, 'body') and openai_err.body and 'message' in openai_err.body.get('error', {}):
+            error_details = openai_err.body['error']['message']
+        return jsonify({"error": f"Erro ao comunicar com a IA: {error_details}"}), 502 # Bad Gateway pode ser apropriado
     except Exception as e:
         log.exception(f"Erro inesperado na rota /chat para o prompt: '{user_message[:50]}...'")
         return jsonify({"error": f"Ocorreu um erro interno no servidor Nash ao processar seu pedido."}), 500
