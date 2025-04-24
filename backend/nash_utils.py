@@ -1,4 +1,4 @@
-# nash_utils.py (Revisado para Alinhar com Observações sobre Embedding)
+# nash_utils.py (Versão Corrigida - Pinecone SDK Atualizado)
 
 import os
 import uuid
@@ -8,8 +8,11 @@ import json
 from typing import List, Dict, Optional, Tuple, Any # Melhor usar typing explícito
 
 from openai import OpenAI, OpenAIError # Importar erro específico ajuda no tratamento
-import pinecone # Importar diretamente
-from pinecone import Index # Importar Index explicitamente
+# <<< MODIFICADO >>> Importações Pinecone atualizadas
+from pinecone import Pinecone # Nova classe principal
+# from pinecone import Index # Index é obtido via instância Pinecone
+# import pinecone <<< REMOVIDO >>> Não usar mais o módulo diretamente para init
+
 from github import Github, GithubException # Importar erro específico
 from googleapiclient.discovery import build, Resource # Tipagem para o serviço
 from google.auth.exceptions import GoogleAuthError # Importar erro específico
@@ -37,7 +40,8 @@ ALLOWED_EXTENSIONS_SET = IMAGE_EXTS | CODE_EXTS | AUDIO_VIDEO_EXTS
 
 # Cache simples para clientes (evita reinicializar toda hora)
 _openai_client = None
-_pinecone_index = None
+_pinecone_client = None # <<< MODIFICADO >>> Cache para o cliente Pinecone
+_pinecone_index_obj = None # <<< MODIFICADO >>> Cache para o objeto Index
 _github_repo = None
 _google_search_service = None
 
@@ -65,11 +69,12 @@ def init_openai(api_key: Optional[str] = None) -> Optional[OpenAI]:
          log.exception(f"Erro inesperado ao inicializar cliente OpenAI: {e}")
          return None
 
-def init_pinecone(api_key: Optional[str] = None, index_name: Optional[str] = None) -> Optional[Index]:
-    """Inicializa e retorna o objeto Index do Pinecone."""
-    global _pinecone_index
-    if _pinecone_index:
-        return _pinecone_index
+# <<< ATUALIZADO >>> Função init_pinecone revisada para novo SDK
+def init_pinecone(api_key: Optional[str] = None, index_name: Optional[str] = None) -> Optional[Any]: # Retorna objeto Index
+    """Inicializa e retorna o objeto Index do Pinecone usando o novo SDK."""
+    global _pinecone_client, _pinecone_index_obj # Usar caches corretos
+    if _pinecone_index_obj:
+        return _pinecone_index_obj
 
     api_key = api_key or os.getenv("PINECONE_API_KEY")
     index_name = index_name or os.getenv("PINECONE_INDEX_NAME")
@@ -79,25 +84,50 @@ def init_pinecone(api_key: Optional[str] = None, index_name: Optional[str] = Non
         return None
 
     try:
-        log.info(f"Inicializando Pinecone com Index: {index_name}...")
-        # pinecone.init(api_key=api_key, environment=os.getenv("PINECONE_ENVIRONMENT")) # Ambiente pode ser necessário
-        pinecone.init(api_key=api_key) # API Key é suficiente geralmente
-        if index_name not in pinecone.list_indexes():
-            log.error(f"Pinecone Index '{index_name}' não encontrado na sua conta.")
-            # Considerar criar o index se não existir (requer dimensões, métrica, etc.)
-            # pinecone.create_index(index_name, dimension=1536, metric="cosine") # Exemplo
-            return None
+        # 1. Inicializa o cliente Pinecone (se ainda não foi)
+        if not _pinecone_client:
+            log.info(f"Inicializando Pinecone Client...")
+            _pinecone_client = Pinecone(api_key=api_key)
+            log.info(f"Cliente Pinecone instanciado.")
 
-        _pinecone_index = pinecone.Index(index_name)
-        # Validar conexão com describe_index_stats
-        stats = _pinecone_index.describe_index_stats()
+        # 2. Verifica se o índice existe
+        log.info(f"Verificando existência do Index Pinecone: {index_name}...")
+        if index_name not in _pinecone_client.list_indexes().names:
+            log.error(f"O Index Pinecone '{index_name}' não foi encontrado na sua conta/projeto.")
+            # Você pode adicionar lógica para criar o índice aqui se desejar, ex:
+            # try:
+            #     log.info(f"Tentando criar index '{index_name}'...")
+            #     _pinecone_client.create_index(
+            #         name=index_name,
+            #         dimension=1536, # Use a dimensão correta do seu modelo de embedding
+            #         metric="cosine", # Ou 'euclidean', 'dotproduct'
+            #         spec=ServerlessSpec(cloud='aws', region='us-east-1') # Adapte nuvem/região
+            #     )
+            #     # Aguardar criação (pode levar um tempo)
+            #     while not _pinecone_client.describe_index(index_name).status['ready']:
+            #         log.info("Aguardando index ficar pronto...")
+            #         time.sleep(5)
+            # except Exception as create_e:
+            #      log.exception(f"Falha ao tentar criar o index Pinecone '{index_name}': {create_e}")
+            #      return None
+            return None # Retorna None se não existe e não foi criado
+
+        log.info(f"Index '{index_name}' encontrado.")
+
+        # 3. Obtém o objeto Index
+        _pinecone_index_obj = _pinecone_client.Index(index_name)
+
+        # 4. Valida a conexão fazendo uma chamada rápida
+        stats = _pinecone_index_obj.describe_index_stats()
         log.info(f"Conectado ao Pinecone Index '{index_name}'. Status: {stats}")
-        return _pinecone_index
-    except pinecone.exceptions.ApiException as e:
-         log.exception(f"Erro de API Pinecone ao inicializar/conectar ao index '{index_name}': {e}")
-         return None
-    except Exception as e:
-        log.exception(f"Erro inesperado ao inicializar Pinecone Index '{index_name}': {e}")
+        return _pinecone_index_obj
+
+    # except pinecone.exceptions.ApiException as e: <<< ANTIGO >>>
+    except Exception as e: # <<< ATUALIZADO >>> Captura exceção genérica ou específica do novo SDK
+        log.exception(f"Erro durante a inicialização/conexão com Pinecone Index '{index_name}'. Tipo: {type(e).__name__}")
+        # Limpar caches em caso de erro na inicialização/conexão
+        _pinecone_client = None
+        _pinecone_index_obj = None
         return None
 
 def init_github(pat: Optional[str] = None, repo_name: Optional[str] = None) -> Optional[Any]: # Retorna 'Repository' mas Any evita dependência forte
@@ -194,10 +224,11 @@ def get_text_embedding(text: str, client: Optional[OpenAI] = None, retries: int 
             return None
     return None # Caso o loop termine sem sucesso
 
-def fetch_relevant_memories(index: Index, query_text: str, top_k: int = 3, namespace: str = "nash-default") -> List[Dict[str, Any]]:
+# <<< ATUALIZADO >>> Tipo do parâmetro 'index' e tratamento de erro
+def fetch_relevant_memories(index: Any, query_text: str, top_k: int = 3, namespace: str = "nash-default") -> List[Dict[str, Any]]:
     """Busca memórias relevantes no Pinecone para um dado texto."""
-    if not index:
-        log.error("Índice Pinecone não fornecido para fetch_relevant_memories.")
+    if not index: # 'index' agora é o objeto retornado por pc.Index()
+        log.error("Objeto Index Pinecone não fornecido para fetch_relevant_memories.")
         return []
     if not query_text:
          log.warning("Texto de consulta vazio para fetch_relevant_memories.")
@@ -210,6 +241,7 @@ def fetch_relevant_memories(index: Index, query_text: str, top_k: int = 3, names
 
     try:
         log.info(f"Consultando Pinecone (top_k={top_k}, namespace={namespace}) para: '{query_text[:50]}...'")
+        # A chamada a 'query' no objeto Index está correta
         results = index.query(
             vector=query_embedding,
             top_k=top_k,
@@ -218,13 +250,13 @@ def fetch_relevant_memories(index: Index, query_text: str, top_k: int = 3, names
         )
 
         memories = []
+        # A estrutura de 'results.matches' é mantida no novo SDK
         if results and results.matches:
             for match in results.matches:
-                # Compatibilidade com versões antigas/novas do cliente Pinecone
                 metadata = match.get('metadata', {})
                 score = match.get('score', 0.0)
-                memory_text = metadata.get('text', '[Texto da memória ausente]') # Campo esperado no metadata
-                memory_response = metadata.get('response', '') # Campo esperado no metadata
+                memory_text = metadata.get('text', '[Texto da memória ausente]')
+                memory_response = metadata.get('response', '')
                 timestamp = metadata.get('timestamp', 'N/A')
 
                 memories.append({
@@ -233,25 +265,21 @@ def fetch_relevant_memories(index: Index, query_text: str, top_k: int = 3, names
                     "text": memory_text,
                     "response": memory_response,
                     "timestamp": timestamp,
-                    "metadata": metadata # Inclui todo o metadata para flexibilidade
+                    "metadata": metadata
                 })
             log.info(f"Encontradas {len(memories)} memórias relevantes.")
         else:
              log.info("Nenhuma memória relevante encontrada na consulta ao Pinecone.")
 
-        # Ordenar por score descendente (mais relevante primeiro), Pinecone já faz isso
-        # memories.sort(key=lambda x: x['score'], reverse=True)
         return memories
 
-    except pinecone.exceptions.ApiException as e:
-        log.exception(f"Erro da API Pinecone durante a consulta de memória: {e}")
-        return []
-    except Exception as e:
-        log.exception(f"Erro inesperado durante a consulta de memória no Pinecone: {e}")
+    # except pinecone.exceptions.ApiException as e: <<< ANTIGO >>>
+    except Exception as e: # <<< ATUALIZADO >>> Captura exceção genérica ou específica do novo SDK
+        log.exception(f"Erro durante a consulta de memória no Pinecone. Tipo: {type(e).__name__}")
         return []
 
-# <<< MODIFICADO >>> Aceita embedding_vector opcional
-def register_memory(index: Index,
+# <<< ATUALIZADO >>> Tipo do parâmetro 'index' e tratamento de erro
+def register_memory(index: Any,
                     session_id: str,
                     text: str,
                     response: str,
@@ -262,8 +290,8 @@ def register_memory(index: Index,
     Registra uma interação ou nota na memória Pinecone.
     Pode usar um embedding pré-calculado ou gerar um internamente.
     """
-    if not index:
-        log.error("Índice Pinecone não fornecido para register_memory.")
+    if not index: # 'index' agora é o objeto retornado por pc.Index()
+        log.error("Objeto Index Pinecone não fornecido para register_memory.")
         return False
     if not text:
          log.warning("Tentativa de registrar memória com texto vazio.")
@@ -274,15 +302,13 @@ def register_memory(index: Index,
 
     # --- Lógica de Embedding ---
     if embedding_vector:
-        # Usa o vetor fornecido (pré-calculado em nash_app.py)
         log.debug(f"Usando embedding pré-calculado para registrar memória (ID: {vector_id}).")
         if not isinstance(embedding_vector, list) or not all(isinstance(x, float) for x in embedding_vector):
              log.error(f"Embedding pré-calculado inválido fornecido para register_memory (ID: {vector_id}). Tipo: {type(embedding_vector)}")
              return False
     else:
-        # Gera o embedding internamente (comportamento original)
         log.debug(f"Gerando embedding internamente para registrar memória (ID: {vector_id}).")
-        combined_text = f"{text} [NASH]: {response}" if response else text # Combina ou usa só o texto se não houver resposta
+        combined_text = f"{text} [NASH]: {response}" if response else text
         embedding_vector = get_text_embedding(combined_text)
         if not embedding_vector:
             log.error(f"Falha ao gerar embedding interno para registro de memória (ID: {vector_id}).")
@@ -291,9 +317,9 @@ def register_memory(index: Index,
     # --- Criação do Metadata ---
     metadata = {
         "session_id": session_id,
-        "text": text, # Texto original do usuário ou nota
-        "response": response or "", # Resposta do Nash ou vazio para notas
-        "tag": tag, # "chat", "upload", "manual", "code_proposal", etc.
+        "text": text,
+        "response": response or "",
+        "tag": tag,
         "timestamp": timestamp,
         "text_length": len(text),
         "response_length": len(response or ""),
@@ -301,14 +327,13 @@ def register_memory(index: Index,
 
     # --- Upsert no Pinecone ---
     try:
+        # A chamada a 'upsert' no objeto Index está correta
         index.upsert(vectors=[(vector_id, embedding_vector, metadata)], namespace=namespace)
         log.info(f"Memória registrada (Tag: {tag}, Namespace: {namespace}) ID: {vector_id} para sessão: {session_id}")
         return True
-    except pinecone.exceptions.ApiException as e:
-        log.exception(f"Erro da API Pinecone durante o upsert da memória (ID: {vector_id}): {e}")
-        return False
-    except Exception as e:
-        log.exception(f"Erro inesperado durante o upsert da memória no Pinecone (ID: {vector_id}): {e}")
+    # except pinecone.exceptions.ApiException as e: <<< ANTIGO >>>
+    except Exception as e: # <<< ATUALIZADO >>> Captura exceção genérica ou específica do novo SDK
+        log.exception(f"Erro durante o upsert da memória no Pinecone (ID: {vector_id}). Tipo: {type(e).__name__}")
         return False
 
 def nash_log(section: str) -> str:
@@ -366,7 +391,7 @@ def allowed_file(filename: str) -> bool:
         return False
     ext = os.path.splitext(filename)[1].lower()
     return ext in ALLOWED_EXTENSIONS_SET
-    
+
 
 # --- Funções de Integração (GitHub, Google Search) ---
 
