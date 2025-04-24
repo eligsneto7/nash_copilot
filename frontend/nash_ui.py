@@ -3,12 +3,30 @@
 import streamlit as st
 import requests
 import time
+import os
 import random
 import html
 import uuid # Usado para keys únicas se necessário
 from datetime import datetime, timedelta
 from streamlit_extras.add_vertical_space import add_vertical_space
 import json # Para exibir conteúdo de código formatado
+from nash_utils import (
+    init_openai,
+    init_pinecone,
+    init_github,
+    init_google_search,
+    fetch_relevant_memories,
+    register_memory,
+    nash_log,
+    allowed_file       as ALLOWED_EXTENSIONS,
+    IMAGE_EXTS,
+    CODE_EXTS,
+    get_github_file_content,
+    propose_github_change,
+    perform_google_search,
+    get_text_embedding
+)
+
 
 # --- Constantes ---
 # Use st.secrets para produção ou variáveis de ambiente para o URL do backend
