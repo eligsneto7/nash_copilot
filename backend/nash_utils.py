@@ -90,26 +90,15 @@ def init_pinecone(api_key: Optional[str] = None, index_name: Optional[str] = Non
             _pinecone_client = Pinecone(api_key=api_key)
             log.info(f"Cliente Pinecone instanciado.")
 
-        # 2. Verifica se o índice existe
+        # 2. Verifica se o índice existe <<< CORREÇÃO APLICADA AQUI >>>
         log.info(f"Verificando existência do Index Pinecone: {index_name}...")
-        if index_name not in _pinecone_client.list_indexes().names:
-            log.error(f"O Index Pinecone '{index_name}' não foi encontrado na sua conta/projeto.")
-            # Você pode adicionar lógica para criar o índice aqui se desejar, ex:
-            # try:
-            #     log.info(f"Tentando criar index '{index_name}'...")
-            #     _pinecone_client.create_index(
-            #         name=index_name,
-            #         dimension=1536, # Use a dimensão correta do seu modelo de embedding
-            #         metric="cosine", # Ou 'euclidean', 'dotproduct'
-            #         spec=ServerlessSpec(cloud='aws', region='us-east-1') # Adapte nuvem/região
-            #     )
-            #     # Aguardar criação (pode levar um tempo)
-            #     while not _pinecone_client.describe_index(index_name).status['ready']:
-            #         log.info("Aguardando index ficar pronto...")
-            #         time.sleep(5)
-            # except Exception as create_e:
-            #      log.exception(f"Falha ao tentar criar o index Pinecone '{index_name}': {create_e}")
-            #      return None
+        index_list_object = _pinecone_client.list_indexes() # PASSO 1: Obter o objeto IndexList
+        available_names = index_list_object.names          # PASSO 2: Acessar o atributo .names (que deve ser a lista)
+
+        # PASSO 3: Verificar a existência na lista 'available_names'
+        if index_name not in available_names:
+            log.error(f"O Index Pinecone '{index_name}' não foi encontrado na sua conta/projeto. Índices disponíveis: {available_names}")
+            # Você pode adicionar lógica para criar o índice aqui se desejar (ver código anterior)
             return None # Retorna None se não existe e não foi criado
 
         log.info(f"Index '{index_name}' encontrado.")
@@ -122,8 +111,8 @@ def init_pinecone(api_key: Optional[str] = None, index_name: Optional[str] = Non
         log.info(f"Conectado ao Pinecone Index '{index_name}'. Status: {stats}")
         return _pinecone_index_obj
 
-    # except pinecone.exceptions.ApiException as e: <<< ANTIGO >>>
-    except Exception as e: # <<< ATUALIZADO >>> Captura exceção genérica ou específica do novo SDK
+    except Exception as e:
+        # Log detalhado incluindo o traceback completo
         log.exception(f"Erro durante a inicialização/conexão com Pinecone Index '{index_name}'. Tipo: {type(e).__name__}")
         # Limpar caches em caso de erro na inicialização/conexão
         _pinecone_client = None
