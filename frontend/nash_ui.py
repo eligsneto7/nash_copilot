@@ -10,7 +10,7 @@ import uuid # Usado para keys únicas se necessário
 from datetime import datetime, timedelta
 from streamlit_extras.add_vertical_space import add_vertical_space
 import json # Para exibir conteúdo de código formatado
-from nash_utils import (
+from backend.nash_utils import (
     init_openai,
     init_pinecone,
     init_github,
