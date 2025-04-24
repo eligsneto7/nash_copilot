@@ -1,40 +1,9 @@
-# --- START OF FILE nash_ui.py ---
+# --- START OF FILE nash_ui.py (REVISED) ---
 
 import os
 import sys
 from pathlib import Path
-
-# 1) Descobre e injeta o diretório que contém nash_utils.py
-HERE = Path(__file__).resolve().parent
-CANDIDATE_DIRS = [
-    HERE / "backend",          # cenário dev: ./frontend/backend
-    HERE.parent / "backend",   # cenário prod:  /app/backend
-    HERE                       # fallback se nash_utils estiver ao lado
-]
-for candidate in CANDIDATE_DIRS:
-    if (candidate / "nash_utils.py").exists():
-        sys.path.insert(0, str(candidate))
-        break
-
-# 2) Agora podemos importar as utilidades do Nash
-from nash_utils import (
-    init_openai,
-    init_pinecone,
-    init_github,
-    init_google_search,
-    fetch_relevant_memories,
-    register_memory,
-    nash_log,
-    allowed_file   as ALLOWED_EXTENSIONS,
-    IMAGE_EXTS,
-    CODE_EXTS,
-    get_github_file_content,
-    propose_github_change,
-    perform_google_search,
-    get_text_embedding,
-)
-
-# 3) Demais imports da UI
+import logging # MOVIMENTADO PARA CIMA: Importar logging mais cedo
 import streamlit as st
 import requests
 import time
@@ -45,14 +14,73 @@ from datetime import datetime, timedelta
 from streamlit_extras.add_vertical_space import add_vertical_space
 import json
 
+# --- Configuração do Logger (MOVIMENTADO PARA CIMA) ---
+# Inicializa o logger globalmente ANTES de ser usado em funções ou no fluxo principal.
+log = logging.getLogger(__name__)
+# Define a configuração básica (pode ser sobrescrita pela config do app principal se houver)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(name)s:%(message)s')
+log.info("Logger da UI inicializado (nível global).")
+
+# --- Lógica de Import Revisada ---
+HERE = Path(__file__).resolve().parent # Diretório onde nash_ui.py está (e.g., /app)
+PROJECT_ROOT = HERE.parent # Diretório pai (e.g., /) - Menos provável de ser o correto se a UI não está numa subpasta
+
+# Adiciona o diretório que CONTÉM a pasta 'backend' ao sys.path
+# Cenário 1: nash_ui.py está em /app/nash_ui.py, backend está em /app/backend/
+if (HERE / "backend").exists() and (HERE / "backend" / "nash_utils.py").exists():
+     if str(HERE) not in sys.path:
+          sys.path.insert(0, str(HERE))
+          log.info(f"[Import Setup] Adicionado diretório do script ao sys.path: {HERE}")
+# Cenário 2: nash_ui.py está em /app/frontend/nash_ui.py, backend está em /app/backend/
+elif (PROJECT_ROOT / "backend").exists() and (PROJECT_ROOT / "backend" / "nash_utils.py").exists():
+     if str(PROJECT_ROOT) not in sys.path:
+          sys.path.insert(0, str(PROJECT_ROOT))
+          log.info(f"[Import Setup] Adicionado diretório pai ({PROJECT_ROOT}) ao sys.path.")
+else:
+     log.warning(f"[Import Setup] Não foi possível encontrar o diretório 'backend' nos locais esperados ({HERE} ou {PROJECT_ROOT}). Imports podem falhar.")
+     # Adiciona HERE de qualquer forma como fallback, caso a estrutura seja inesperada
+     if str(HERE) not in sys.path:
+          sys.path.insert(0, str(HERE))
+          log.info(f"[Import Setup] Adicionado diretório do script ({HERE}) ao sys.path como fallback.")
+
+
+# Tenta importar usando o caminho relativo ao pacote 'backend'
+try:
+    log.info(f"[Import Setup] Tentando importar de 'backend.nash_utils'. Conteúdo atual de sys.path: {sys.path}")
+    from backend.nash_utils import (
+        init_openai,
+        init_pinecone,
+        init_github,
+        init_google_search,
+        fetch_relevant_memories,
+        register_memory,
+        nash_log,
+        allowed_file, # Importa a função original
+        IMAGE_EXTS,
+        CODE_EXTS,
+        get_github_file_content,
+        propose_github_change,
+        perform_google_search,
+        get_text_embedding,
+    )
+    # Renomeia explicitamente para manter consistência com o código original que usava ALLOWED_EXTENSIONS
+    ALLOWED_EXTENSIONS = allowed_file
+    log.info("[Import Setup] Import de backend.nash_utils realizado com sucesso.")
+
+except ModuleNotFoundError as e:
+    log.exception(f"[Import Setup] ERRO CRÍTICO: ModuleNotFoundError ao importar 'backend.nash_utils'. Verifique a estrutura de pastas no container e a presença de 'backend/__init__.py'. Erro: {e}")
+    # Levanta o erro original para o Streamlit mostrar claramente o problema
+    raise e
+except ImportError as e:
+    log.exception(f"[Import Setup] ERRO CRÍTICO: ImportError durante o import de 'backend.nash_utils'. Pode indicar um problema dentro de nash_utils.py ou suas dependências. Erro: {e}")
+    raise e
+
+
 # --- Constantes ---
-# Use st.secrets para produção ou variáveis de ambiente para o URL do backend
-# BACKEND_URL = st.secrets.get("BACKEND_URL", "https://nashcopilot-production.up.railway.app")
-BACKEND_URL = os.getenv("BACKEND_URL", "https://nashcopilot-production.up.railway.app") # Melhor ler do ambiente
+BACKEND_URL = os.getenv("BACKEND_URL", "https://nashcopilot-production.up.railway.app")
 REQUEST_TIMEOUT = (5, 65) # (connect timeout, read timeout em segundos)
 
-# --- Definição do Tema CSS (Light Mode Adaptado e Traduzido) ---
-# Escolhendo um tema clean e moderno como base.
+# --- Definição do Tema CSS ---
 MODERN_LIGHT_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Fira+Mono:wght@400&display=swap');
@@ -329,7 +357,6 @@ body {
 def check_backend_status(force_check=False) -> tuple[str, str]:
     """Verifica o status do backend. Retorna (status_texto, status_classe_css)."""
     now = datetime.now()
-    # Cache simples para evitar checagens muito frequentes
     cache_duration = timedelta(seconds=30)
     if not force_check and "last_backend_check" in st.session_state and \
        (now - st.session_state.last_backend_check) < cache_duration:
@@ -345,7 +372,6 @@ def check_backend_status(force_check=False) -> tuple[str, str]:
         status_code = r.status_code
 
         if status_code == 200:
-            # <<< NOVO >>> Verificar se integrações estão ativas
             data = r.json()
             gh_ok = data.get("github_enabled", False)
             search_ok = data.get("search_enabled", False)
@@ -362,11 +388,12 @@ def check_backend_status(force_check=False) -> tuple[str, str]:
 
     except requests.exceptions.Timeout:
         status_text = "Timeout"
-        status_class = "status-offline" # Considerar timeout como offline
+        status_class = "status-offline"
     except requests.exceptions.ConnectionError:
         status_text = "Offline"
         status_class = "status-offline"
     except Exception as e:
+        # Usa o logger global que agora está definido
         log.error(f"Erro inesperado ao checar backend: {e}")
         status_text = "Erro"
         status_class = "status-error"
@@ -382,35 +409,42 @@ def escape_html_tags(text: str) -> str:
         text = str(text)
     return html.escape(text, quote=True)
 
-# <<< REMOVIDO >>> scroll_to_bottom_js() - Streamlit gerencia melhor o scroll agora com chat_message/chat_input
-
 # --- Inicialização do Estado da Sessão ---
 def init_session_state():
     """Inicializa as variáveis do estado da sessão se não existirem."""
     defaults = {
         "start_time": datetime.now(),
-        "history": [], # Histórico do chat
+        "history": [],
         "eli_msg_count": 0,
         "nash_msg_count": 0,
-        "is_authenticated": False, # Status de autenticação
+        "is_authenticated": False,
         "backend_status": "N/A",
         "backend_status_class": "status-checking",
         "last_backend_check": None,
-        "waiting_for_nash": False, # Flag para indicar espera por resposta
-        "uploaded_file_info": None, # Info do arquivo anexado {'name': ..., 'type': ..., 'backend_ref': ...}
-        "uploaded_file_id": None,   # ID único do arquivo carregado para evitar re-upload
-        "login_error": None, # Mensagem de erro do login
-        "auto_scroll": True, # Se scrolla automaticamente (pode ser desabilitado)
-        "session_uuid": str(uuid.uuid4()) # ID único para a sessão da UI (pode ser útil)
+        "waiting_for_nash": False,
+        "uploaded_file_info": None,
+        "uploaded_file_id": None,
+        "login_error": None,
+        "auto_scroll": True,
+        "session_uuid": str(uuid.uuid4()),
+        "read_code_path_pending": None, # Adicionado para rastrear leitura pendente
+        "propose_params": None # Mantido para proposta pendente
     }
+    changed = False
     for key, default_value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = default_value
-    log.info(f"Estado da sessão inicializado (UUID: {st.session_state.session_uuid}). Autenticado: {st.session_state.is_authenticated}")
+            changed = True
+    if changed:
+         log.info(f"Estado da sessão inicializado/atualizado (UUID: {st.session_state.session_uuid}). Autenticado: {st.session_state.is_authenticated}")
+    else:
+         log.debug(f"Estado da sessão já existe (UUID: {st.session_state.session_uuid}). Autenticado: {st.session_state.is_authenticated}")
+
 
 # --- Renderização do Visor ---
 def render_visor():
     """Renderiza o componente do visor superior com informações."""
+    # ... (código idêntico ao original, sem necessidade de mudança aqui) ...
     status, _ = check_backend_status() # Pega só o texto do status
     uptime_delta = datetime.now() - st.session_state.start_time
     # Formatar uptime de forma mais legível
@@ -443,6 +477,7 @@ def render_visor():
 # --- Lógica de Login ---
 def handle_login():
     """Gerencia a tela e o processo de login."""
+    # ... (código idêntico ao original, usando log global agora) ...
     st.markdown("### Autenticação Necessária")
     st.markdown("Por favor, insira o código de autorização para ativar o Nash.")
 
@@ -462,7 +497,7 @@ def handle_login():
         login_pressed = st.button("Autenticar ✨", key="login_button", use_container_width=True, disabled=st.session_state.waiting_for_nash)
 
     # Tenta logar se o botão foi pressionado ou se já estava esperando (após rerun)
-    if login_pressed or (st.session_state.waiting_for_nash and not st.session_state.is_authenticated):
+    if login_pressed or (st.session_state.waiting_for_nash and not st.session_state.is_authenticated and st.session_state.get("login_password_input")): # Adicionado check se estava esperando e tem senha
         if not password and login_pressed: # Verifica senha vazia apenas no clique inicial
             st.session_state.login_error = "O código de autorização não pode estar vazio."
             st.session_state.waiting_for_nash = False # Resetar flag se falhou antes de tentar
@@ -475,37 +510,48 @@ def handle_login():
         # Mostrar spinner enquanto tenta logar (só aparece após rerun)
         with st.spinner("Verificando credenciais com o backend..."):
             login_success = False
-            actual_password = st.session_state.login_password_input # Pega a senha do estado atual
-            try:
-                log.info("Tentando autenticar no backend...")
-                r = requests.post(f"{BACKEND_URL}/login", json={"password": actual_password}, timeout=REQUEST_TIMEOUT)
-                if r.status_code == 200 and r.json().get("success"):
-                    st.session_state.is_authenticated = True
-                    login_success = True
-                    st.session_state.login_error = None
-                    log.info("Autenticação bem-sucedida!")
-                    st.toast("Autenticação bem-sucedida! Protocolos ativados.", icon="✅")
-                else:
-                    error_msg = r.json().get("msg", f"Falha (Status: {r.status_code})")
-                    st.session_state.login_error = escape_html_tags(error_msg)
-                    log.warning(f"Falha na autenticação: {error_msg}")
+            # Usa get() para pegar a senha, mais seguro se a key não existir
+            actual_password = st.session_state.get("login_password_input", "")
 
-            except requests.exceptions.RequestException as e:
-                st.session_state.login_error = f"Erro de rede durante autenticação: {e}"
-                log.error(f"Erro de rede na autenticação: {e}")
-            except Exception as e:
-                st.session_state.login_error = f"Erro inesperado durante autenticação: {e}"
-                log.exception("Erro inesperado na autenticação:")
-            finally:
-                st.session_state.waiting_for_nash = False # Terminou a tentativa
-                if login_success:
-                    # Limpar campo de senha visualmente (rerun necessário)
-                    st.session_state.login_password_input = "" # Limpa o valor no estado
-                    time.sleep(0.5) # Pequena pausa para toast
-                    st.rerun()
-                else:
-                    # Apenas reroda para mostrar o erro (ou manter estado se já estava esperando)
-                    st.rerun()
+            # Verifica se realmente tem uma senha para tentar (evita chamadas vazias em reruns)
+            if not actual_password and login_pressed: # Checa de novo se vazia no clique
+                 st.session_state.login_error = "O código de autorização não pode estar vazio."
+                 st.session_state.waiting_for_nash = False
+                 st.rerun()
+            elif not actual_password and not login_pressed: # Se estava esperando mas a senha sumiu (improvável)
+                 st.session_state.waiting_for_nash = False
+                 st.rerun() # Só reroda sem tentar
+            else:
+                try:
+                    log.info("Tentando autenticar no backend...")
+                    r = requests.post(f"{BACKEND_URL}/login", json={"password": actual_password}, timeout=REQUEST_TIMEOUT)
+                    if r.status_code == 200 and r.json().get("success"):
+                        st.session_state.is_authenticated = True
+                        login_success = True
+                        st.session_state.login_error = None
+                        log.info("Autenticação bem-sucedida!")
+                        st.toast("Autenticação bem-sucedida! Protocolos ativados.", icon="✅")
+                    else:
+                        error_msg = r.json().get("msg", f"Falha (Status: {r.status_code})")
+                        st.session_state.login_error = escape_html_tags(error_msg)
+                        log.warning(f"Falha na autenticação: {error_msg}")
+
+                except requests.exceptions.RequestException as e:
+                    st.session_state.login_error = f"Erro de rede durante autenticação: {e}"
+                    log.error(f"Erro de rede na autenticação: {e}")
+                except Exception as e:
+                    st.session_state.login_error = f"Erro inesperado durante autenticação: {e}"
+                    log.exception("Erro inesperado na autenticação:")
+                finally:
+                    st.session_state.waiting_for_nash = False # Terminou a tentativa
+                    if login_success:
+                        # Limpar campo de senha visualmente (rerun necessário)
+                        st.session_state.login_password_input = "" # Limpa o valor no estado
+                        time.sleep(0.5) # Pequena pausa para toast
+                        st.rerun()
+                    else:
+                        # Apenas reroda para mostrar o erro
+                        st.rerun()
 
     # Se não autenticado, parar aqui
     if not st.session_state.is_authenticated:
@@ -515,36 +561,34 @@ def handle_login():
 # --- Lógica de Upload ---
 def handle_file_upload(upload_status_placeholder):
     """Gerencia o upload de arquivos na sidebar."""
+    # Usa a função ALLOWED_EXTENSIONS (que é a `allowed_file` importada)
+    # O código original tinha a lista de extensões aqui, mas vamos confiar na função importada
+    # Se ALLOWED_EXTENSIONS for uma função, chamá-la. Se for um set, usar 'in'.
+    # Assumindo que ALLOWED_EXTENSIONS é a função importada de nash_utils.
+    # A validação de extensão no frontend é um plus, o backend fará a validação final.
+
     uploaded_file = st.file_uploader(
         "Anexar Arquivo (Opcional)",
-        # type=[ext.lstrip('.') for ext in ALLOWED_FILE_EXTENSIONS], # Gerar tipos permitidos
         key="file_uploader_widget",
-        label_visibility="collapsed", # O título da seção já serve como label
+        label_visibility="collapsed",
         help="Anexe um arquivo para análise junto com seu próximo comando."
     )
 
     if uploaded_file is not None:
-        # Verificar se é um arquivo novo para evitar re-upload a cada rerun
-        # Usar nome e tamanho como identificador simples
         current_file_id = f"{uploaded_file.name}-{uploaded_file.size}"
         previous_file_id = st.session_state.get("uploaded_file_id")
 
-        # Processar apenas se for um arquivo diferente do anterior
         if current_file_id != previous_file_id:
-            st.session_state.uploaded_file_info = None # Resetar info antiga
+            st.session_state.uploaded_file_info = None
 
-            # Validar extensão no frontend também (embora backend valide)
-            file_ext = os.path.splitext(uploaded_file.name)[1].lower()
-            # Reconstruir lista de extensões permitidas para mensagem de erro
-            allowed_ext_list = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff", ".svg",
-                                ".py", ".txt", ".md", ".json", ".csv", ".pdf", ".log", ".sh", ".yaml", ".toml", ".html", ".css", ".js", ".ipynb",
-                                ".mp3", ".wav", ".ogg", ".mp4", ".mov", ".avi", ".webm"} # Exemplo, idealmente viria do backend
-            if file_ext not in allowed_ext_list:
-                 upload_status_placeholder.error(f"Tipo de arquivo '{file_ext}' não permitido.")
-                 st.session_state.uploaded_file_id = None # Marca como não enviado
-                 # Limpar o uploader visualmente (requer rerun com chave diferente ou truque)
-                 # st.session_state.file_uploader_widget = None # Tentar limpar estado (pode não funcionar)
-                 return # Não processa
+            # Validação Frontend (redundante se o backend valida, mas bom para UI)
+            if not ALLOWED_EXTENSIONS(uploaded_file.name): # Chama a função importada
+                 file_ext = os.path.splitext(uploaded_file.name)[1].lower()
+                 upload_status_placeholder.error(f"Tipo de arquivo '{file_ext}' não permitido pelo frontend.")
+                 log.warning(f"Tentativa de upload de tipo não permitido (frontend check): {uploaded_file.name}")
+                 st.session_state.uploaded_file_id = None
+                 # Não precisa limpar widget aqui, o erro já informa
+                 return
 
             files = {"file": (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type)}
             try:
@@ -557,9 +601,9 @@ def handle_file_upload(upload_status_placeholder):
                     st.session_state.uploaded_file_info = {
                         "name": uploaded_file.name,
                         "type": uploaded_file.type,
-                        "backend_ref": response_data.get("filename") # Referência do backend
+                        "backend_ref": response_data.get("filename")
                     }
-                    st.session_state.uploaded_file_id = current_file_id # Marcar como enviado com sucesso
+                    st.session_state.uploaded_file_id = current_file_id
                     upload_status_placeholder.success(f"✅ '{escape_html_tags(uploaded_file.name)}' anexado!")
                     log.info(f"Upload bem-sucedido: {response_data.get('filename')}")
                 else:
@@ -584,24 +628,21 @@ def handle_file_upload(upload_status_placeholder):
                 log.exception("Erro inesperado no upload:")
                 st.session_state.uploaded_file_info = None
                 st.session_state.uploaded_file_id = None
-        # else: # Mesmo arquivo, já foi processado (não precisa fazer nada ou mostrar msg)
-             # upload_status_placeholder.info(f"📎 Anexado: `{escape_html_tags(uploaded_file.name)}`")
 
     elif uploaded_file is None and st.session_state.uploaded_file_info:
-        # Se o uploader foi limpo pelo usuário (clicou no 'x'), limpar o estado
-        log.info("Arquivo desanexado pelo usuário.")
+        log.info("Arquivo desanexado pelo usuário ou uploader limpo.")
         st.session_state.uploaded_file_info = None
         st.session_state.uploaded_file_id = None
-        upload_status_placeholder.empty() # Limpa a mensagem de status
+        upload_status_placeholder.empty()
 
-    # Mostrar info do arquivo pronto para ser anexado (se houver)
-    if st.session_state.uploaded_file_info and uploaded_file: # Mostra só se ainda estiver no uploader
+    if st.session_state.uploaded_file_info and uploaded_file:
          upload_status_placeholder.info(f"📎 Pronto: `{escape_html_tags(st.session_state.uploaded_file_info['name'])}`")
 
 
 # --- Renderização da Sidebar ---
 def render_sidebar():
     """Renderiza a sidebar com controles, informações e novas ações."""
+    # ... (código idêntico ao original, sem necessidade de mudança aqui) ...
     with st.sidebar:
         st.markdown("### 🛰️ Upload de Dados")
         upload_status_placeholder = st.empty() # Placeholder para mensagens de status do upload
@@ -616,9 +657,9 @@ def render_sidebar():
             # Ler Arquivo
             st.markdown("**Ler Arquivo:**")
             read_file_path = st.text_input("Caminho do Arquivo (e.g., `nash_api.py`)", key="read_code_path", placeholder="src/arquivo.py")
-            if st.button("Ler Conteúdo 📄", key="read_code_btn", use_container_width=True):
+            if st.button("Ler Conteúdo 📄", key="read_code_btn", use_container_width=True, disabled=st.session_state.waiting_for_nash):
                 if read_file_path:
-                    handle_read_code(read_file_path)
+                    handle_read_code(read_file_path) # Chama a função para iniciar o processo
                 else:
                     st.warning("Por favor, insira o caminho do arquivo para leitura.")
 
@@ -628,11 +669,10 @@ def render_sidebar():
             st.markdown("**Propor Mudança:**")
             propose_file_path = st.text_input("Caminho do Arquivo para Modificar", key="propose_code_path", placeholder="nash_utils.py")
             propose_desc = st.text_area("Descrição da Mudança Solicitada", key="propose_code_desc", placeholder="Ex: Adicionar tratamento para erro X na função Y")
-            # O conteúdo novo será gerado pelo LLM no backend a partir da descrição
 
-            if st.button("Gerar e Propor Mudança ✨", key="propose_code_btn", use_container_width=True):
+            if st.button("Gerar e Propor Mudança ✨", key="propose_code_btn", use_container_width=True, disabled=st.session_state.waiting_for_nash):
                  if propose_file_path and propose_desc:
-                     handle_propose_change(propose_file_path, propose_desc)
+                     handle_propose_change(propose_file_path, propose_desc) # Chama a função para iniciar o processo
                  else:
                      st.warning("Por favor, preencha o caminho do arquivo e a descrição da mudança.")
 
@@ -640,7 +680,7 @@ def render_sidebar():
 
         st.markdown("### ⚙️ Controles da Sessão")
         st.checkbox("Scroll Automático", key="auto_scroll", help="Rolar automaticamente para a última mensagem.")
-        if st.button("Limpar Histórico da Sessão", key="clear_chat_btn", help="Apagar todas as mensagens desta sessão.", use_container_width=True, type="secondary"):
+        if st.button("Limpar Histórico da Sessão", key="clear_chat_btn", help="Apagar todas as mensagens desta sessão.", use_container_width=True, type="secondary", disabled=st.session_state.waiting_for_nash):
              clear_session() # Chama função para limpar estado
              st.rerun() # Atualiza a UI
 
@@ -648,13 +688,12 @@ def render_sidebar():
 
         st.markdown("### 🧠 Perfil Nash Core")
         status_text, status_class = check_backend_status()
-        # <<< MODIFICADO >>> Atualizado com novas capacidades
         profile_html = f"""
         <div class="nash-profile-details">
             Designação: <b>Nash</b><br>
             Classe: Copiloto Digital AI<br>
             Memória: Vetorizada (Pinecone)<br>
-            Backend: <span title="Última verificação: {st.session_state.last_backend_check}">{status_text}</span><br>
+            Backend: <span title="Última verificação: {st.session_state.get('last_backend_check', 'N/A')}">{status_text}</span><br>
             Autenticação: <b>{'CONCEDIDA' if st.session_state.is_authenticated else 'REQUERIDA'}</b><br>
             <b>Capacidades Ativas:</b><br>
              - Busca Web (Google)<br>
@@ -664,15 +703,21 @@ def render_sidebar():
         """
         st.markdown(profile_html, unsafe_allow_html=True)
 
-# --- <<< NOVO >>> Funções para Ações de Código ---
+
+# --- Funções para Ações de Código ---
 def handle_read_code(file_path):
-    """Envia requisição para ler arquivo do GitHub via backend."""
+    """Inicia o processo para ler arquivo do GitHub via backend."""
+    log.info(f"handle_read_code chamado para: {file_path}")
     st.session_state.waiting_for_nash = True # Usa a mesma flag de espera
-    st.rerun() # Rerun para mostrar spinner
+    # <<< CORREÇÃO >>> Armazena o caminho no estado ANTES do rerun
+    st.session_state.read_code_path_pending = file_path
+    log.info(f"'{file_path}' armazenado em read_code_path_pending. Iniciando rerun.")
+    st.rerun() # Rerun para mostrar spinner e acionar process_read_code na próxima execução
 
 def process_read_code(file_path):
-    """Processa a leitura do código após o rerun."""
-    if not st.session_state.waiting_for_nash: return
+    """Processa a leitura do código após o rerun (chamado a partir de main)."""
+    # A flag waiting_for_nash já foi verificada em main
+    log.info(f"process_read_code executando para: {file_path}")
 
     code_content = None
     error_message = None
@@ -684,12 +729,11 @@ def process_read_code(file_path):
             if r.status_code == 200:
                 code_content = r.json().get("content")
                 log.info(f"Conteúdo de '{file_path}' recebido com sucesso.")
-                # Adiciona ao histórico como uma 'resposta' informativa
                 st.session_state.history.append({
-                    "role": "assistant", # Ou um role customizado "system" ou "tool"?
-                    "content": f"**Conteúdo de `{file_path}` lido do GitHub:**\n```python\n{code_content}\n```"
+                    "role": "assistant",
+                    "content": f"**Conteúdo de `{file_path}` lido do GitHub:**\n```python\n{code_content}\n```" # Usar python para syntax highlight
                 })
-                st.session_state.nash_msg_count += 1 # Conta como uma resposta
+                st.session_state.nash_msg_count += 1
             else:
                 error_message = r.json().get("error", f"Erro desconhecido ({r.status_code})")
                 log.error(f"Erro ao ler código via backend ({r.status_code}): {error_message}")
@@ -707,25 +751,29 @@ def process_read_code(file_path):
                  "content": f"**Falha ao ler `{file_path}`:**\n```\n{escape_html_tags(error_message)}\n```"
              })
              st.session_state.nash_msg_count += 1
+        # Limpa a flag de espera APENAS se não houver outra ação pendente
+        # (Neste fluxo simples, podemos limpar sempre aqui, main() gerencia o rerun)
         st.session_state.waiting_for_nash = False
-        st.rerun() # Rerun final para exibir o conteúdo ou erro
+        log.info("process_read_code concluído. Rerun será chamado por main.")
+        # st.rerun() # Rerun é gerenciado pelo main() após a chamada
 
 def handle_propose_change(file_path, description):
-    """Envia requisição para propor mudança no GitHub via backend."""
+    """Inicia o processo para propor mudança no GitHub via backend."""
+    log.info(f"handle_propose_change chamado para: {file_path}")
     # Guardar os parâmetros para usar após o rerun
     st.session_state.propose_params = {"file_path": file_path, "description": description}
     st.session_state.waiting_for_nash = True
+    log.info(f"Parâmetros para propose_change armazenados. Iniciando rerun.")
     st.rerun()
 
 def process_propose_change():
-    """Processa a proposta de mudança após o rerun."""
-    if not st.session_state.waiting_for_nash or "propose_params" not in st.session_state:
-        st.session_state.waiting_for_nash = False # Limpa flag se params sumiram
-        return
-
+    """Processa a proposta de mudança após o rerun (chamado a partir de main)."""
+    # Flag e existência de propose_params já checados em main
     params = st.session_state.propose_params
     file_path = params["file_path"]
     description = params["description"]
+    log.info(f"process_propose_change executando para: {file_path} | Desc: {description[:30]}...")
+
     response_message = None
     error_message = None
 
@@ -734,8 +782,7 @@ def process_propose_change():
         with st.spinner(spinner_msg):
             log.info(f"Enviando pedido /propose_code_change para backend: {file_path}")
             payload = {"file_path": file_path, "description": description}
-            # Adicionar base_branch se necessário: payload["base_branch"] = "develop"
-            r = requests.post(f"{BACKEND_URL}/propose_code_change", json=payload, timeout=(10, 120)) # Timeout maior para LLM + Git
+            r = requests.post(f"{BACKEND_URL}/propose_code_change", json=payload, timeout=(10, 120)) # Timeout maior
 
             if r.status_code == 200:
                 result = r.json()
@@ -770,9 +817,12 @@ def process_propose_change():
              st.session_state.nash_msg_count += 1
         # Limpar parâmetros e flag de espera
         st.session_state.waiting_for_nash = False
+        # Remove os parâmetros para não reprocessar
         if "propose_params" in st.session_state:
             del st.session_state.propose_params
-        st.rerun() # Rerun final para exibir o resultado
+        log.info("process_propose_change concluído. Rerun será chamado por main.")
+        # st.rerun() # Rerun é gerenciado pelo main() após a chamada
+
 
 # --- Limpeza da Sessão ---
 def clear_session():
@@ -782,14 +832,16 @@ def clear_session():
      st.session_state.nash_msg_count = 0
      st.session_state.uploaded_file_info = None
      st.session_state.uploaded_file_id = None
-     # Poderia resetar outros estados se necessário
-     log.info("Histórico da sessão limpo.")
+     st.session_state.read_code_path_pending = None # Limpa ações pendentes também
+     st.session_state.propose_params = None
+     log.info("Histórico e estados pendentes da sessão limpos.")
      st.toast("🧹 Histórico da sessão limpo!", icon="✨")
-     time.sleep(0.5)
+     time.sleep(0.5) # Pausa para o toast ser visível antes do rerun
 
 # --- Renderização do Histórico ---
 def render_history(chat_container):
     """Renderiza o histórico de mensagens no container fornecido."""
+    # ... (código idêntico ao original, sem necessidade de mudança aqui) ...
     with chat_container:
         if not st.session_state.history:
              st.markdown("> *Console de comando aguardando input... Digite sua instrução abaixo.*")
@@ -802,66 +854,55 @@ def render_history(chat_container):
             # Usar key única para cada mensagem ajuda Streamlit a gerenciar o estado
             with st.chat_message(role, avatar=avatar):
                 # Renderiza o conteúdo como Markdown
-                # unsafe_allow_html=True pode ser necessário para HTML específico, mas False é mais seguro
+                # unsafe_allow_html=False é mais seguro por padrão
                 st.markdown(content, unsafe_allow_html=False)
 
-    # <<< REMOVIDO >>> JS de scroll - Deixar Streamlit gerenciar
 
 # --- Envio de Prompt e Comunicação com Backend ---
 def handle_chat_input(prompt: str):
     """Processa o input do usuário, envia ao backend e atualiza o histórico."""
     if not prompt:
-        return # Não faz nada se o prompt estiver vazio
+        return
 
-    log.debug(f"Usuário digitou: {prompt[:50]}...")
-    # Adiciona mensagem do usuário ao histórico imediatamente
+    log.info(f"handle_chat_input: Novo prompt='{prompt[:30]}...'")
     st.session_state.history.append({"role": "user", "content": prompt})
     st.session_state.eli_msg_count += 1
 
-    # Prepara payload para backend
-    payload = {"prompt": prompt, "session_id": st.session_state.session_uuid} # Usar UUID da sessão
+    payload = {"prompt": prompt, "session_id": st.session_state.session_uuid}
 
-    # Anexa informação do arquivo se houver
     if st.session_state.uploaded_file_info:
-        # O backend precisa saber como usar essa info (ex: ler do /uploads/<backend_ref>)
         payload["attachment_info"] = {
             "filename": st.session_state.uploaded_file_info["name"],
             "type": st.session_state.uploaded_file_info["type"],
             "backend_ref": st.session_state.uploaded_file_info["backend_ref"]
         }
         log.info(f"Anexando info do arquivo ao prompt: {st.session_state.uploaded_file_info['name']}")
-        # Limpa info do arquivo após anexar ao prompt (para não anexar de novo automaticamente)
         st.session_state.uploaded_file_info = None
         st.session_state.uploaded_file_id = None
-        # Limpar o widget de upload visualmente é complicado, usuário pode precisar re-anexar
 
-    # Marca que está esperando e reroda para mostrar mensagem do usuário + spinner
     st.session_state.waiting_for_nash = True
+    log.info("Prompt adicionado ao histórico. Iniciando rerun para buscar resposta.")
     st.rerun()
 
 # --- Lógica Principal pós-rerun para buscar resposta do Chat ---
 def fetch_nash_response():
-    """Chamado após rerun se waiting_for_nash for True. Busca resposta do backend."""
-    if not st.session_state.waiting_for_nash:
-        return # Só executa se estiver esperando resposta do chat
+    """Chamado após rerun se waiting_for_nash for True e for uma ação de chat."""
+    # Flag já checada em main
+    log.info("fetch_nash_response executando...")
 
-    # Pega a última mensagem do usuário para reenviar (backend pode não ter histórico completo)
     last_user_message = next((msg for msg in reversed(st.session_state.history) if msg["role"] == "user"), None)
     if not last_user_message:
-        log.error("Não foi possível encontrar a última mensagem do usuário no histórico.")
-        st.session_state.waiting_for_nash = False
-        # Adicionar mensagem de erro ao histórico?
+        log.error("Não foi possível encontrar a última mensagem do usuário no histórico para fetch_nash_response.")
         st.session_state.history.append({"role": "assistant", "content": "[Erro Interno da UI: Não encontrei sua última mensagem para enviar ao Nash.]"})
-        st.rerun()
+        st.session_state.waiting_for_nash = False # Limpa flag para evitar loop
+        # st.rerun() # Rerun é gerenciado por main()
         return
 
-    # Reconstrói payload (sem anexo, já foi tratado no handle_chat_input)
     payload = {"prompt": last_user_message["content"], "session_id": st.session_state.session_uuid}
     log.info(f"Enviando prompt para /chat backend: {payload['prompt'][:50]}...")
 
     response_content = ""
     try:
-        # Exibe spinner DENTRO da mensagem de "pensando" do Nash
         with st.chat_message("assistant", avatar="👨‍🚀"):
             with st.spinner("Nash está processando seu comando..."):
                 req = requests.post(f"{BACKEND_URL}/chat", json=payload, timeout=REQUEST_TIMEOUT)
@@ -872,10 +913,10 @@ def fetch_nash_response():
                     st.session_state.nash_msg_count += 1
                 else:
                     try: error_payload = req.json().get("error", req.text)
-                    except ValueError: error_payload = req.text # Se não for JSON
-                    response_content = f"**[Erro do Backend {req.status_code}]**\nOcorreu um problema ao processar seu pedido:\n```\n{escape_html_tags(str(error_payload)[:300])}\n```" # Limita tamanho
+                    except ValueError: error_payload = req.text
+                    response_content = f"**[Erro do Backend {req.status_code}]**\nOcorreu um problema ao processar seu pedido:\n```\n{escape_html_tags(str(error_payload)[:300])}\n```"
                     log.error(f"Erro do backend /chat ({req.status_code}): {error_payload}")
-                    st.session_state.nash_msg_count += 1 # Conta erro como resposta
+                    st.session_state.nash_msg_count += 1
 
     except requests.exceptions.Timeout:
         response_content = "[Timeout da Requisição] Nash demorou muito para responder. Verifique o status do backend ou tente novamente."
@@ -892,26 +933,23 @@ def fetch_nash_response():
     finally:
         st.session_state.history.append({"role": "assistant", "content": response_content})
         st.session_state.waiting_for_nash = False
-        # Rerun final para exibir a resposta do Nash
-        st.rerun()
+        log.info("fetch_nash_response concluído. Rerun será chamado por main.")
+        # st.rerun() # Rerun é gerenciado por main()
 
 
 # --- Função Principal da Aplicação ---
 def main():
     """Função principal que organiza a UI do Streamlit."""
     st.set_page_config(page_title="Nash Copilot", page_icon="👨‍🚀", layout="wide")
-
-    # Inicializa logger para UI (se não feito globalmente)
-    global log
-    log = logging.getLogger(__name__)
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(name)s:%(message)s')
+    log.info("--- Nova Execução da UI Iniciada ---")
 
     # Aplica o CSS moderno
     st.markdown(MODERN_LIGHT_CSS, unsafe_allow_html=True)
 
-    init_session_state() # Garante que o estado da sessão existe
+    # Garante que o estado da sessão existe (chama log internamente)
+    init_session_state()
 
-    # Status flutuante (atualizado no início de cada run)
+    # Status flutuante
     status_text, status_class = check_backend_status()
     st.markdown(f"""
     <div id='backend-status' title='Status do Backend Nash'>
@@ -919,46 +957,64 @@ def main():
         Backend: {status_text}
     </div>""", unsafe_allow_html=True)
 
-    # Renderiza Sidebar (sempre visível)
+    # Renderiza Sidebar
     render_sidebar()
+    log.debug("Sidebar renderizada.")
 
-    # Lógica de Autenticação / Bloqueio
+    # Lógica de Autenticação (handle_login chama st.stop() se não autenticado)
     if not st.session_state.is_authenticated:
-        handle_login() # Função cuida do input, botão, chamada e st.stop()
-        # O código abaixo só roda se handle_login *não* chamar st.stop()
-        # (ou seja, após autenticação bem-sucedida e rerun)
+        log.info("Usuário não autenticado. Exibindo tela de login.")
+        handle_login()
+    log.info("Usuário autenticado. Continuando renderização principal.") # Só chega aqui se autenticado
 
-    # Área Principal (Visor + Chat) - Só mostra se autenticado
+    # Área Principal
     render_visor()
+    log.debug("Visor renderizado.")
 
-    # Container para o histórico de chat (altura pode ser ajustada se necessário)
-    # chat_container = st.container(height=600) # Exemplo com altura fixa
     chat_container = st.container()
-    render_history(chat_container) # Renderiza o histórico atual
+    render_history(chat_container)
+    log.debug("Histórico renderizado.")
 
-    # Lógica pós-rerun para ações pendentes (chat, leitura de código, proposta de mudança)
-    # A flag waiting_for_nash agora diferencia qual ação está pendente (implícito pelo estado)
+    # --- Processamento de Ações Pendentes ---
+    # Verifica se alguma ação estava esperando após um rerun
+    rerun_needed_after_action = False
     if st.session_state.waiting_for_nash:
-        if "propose_params" in st.session_state:
-             process_propose_change()
-        elif st.session_state.get("read_code_path_pending"): # Necessário um marcador se não tiver params
-             # Implementar process_read_code() - Assumindo que foi chamado por handle_read_code()
-             # Deveria ter o file_path no estado
-             # process_read_code(st.session_state.read_code_path_pending) # Exemplo
-             pass # Adicionar lógica de chamada para process_read_code aqui
-        else:
-            # Assume que é uma resposta de chat pendente
-            fetch_nash_response()
+        log.info("Estado 'waiting_for_nash' detectado. Verificando tipo de ação...")
 
-    # Input de Chat (Usando st.chat_input) - Deve ser o último elemento interativo principal
+        # Verifica se era uma proposta de código
+        if st.session_state.get("propose_params"):
+             log.info("Processando propose_code_change...")
+             process_propose_change()
+             rerun_needed_after_action = True # Precisa rerodar para mostrar resultado
+
+        # Verifica se era uma leitura de código
+        elif st.session_state.get("read_code_path_pending"):
+             file_to_read = st.session_state.read_code_path_pending
+             log.info(f"Processando read_code para: {file_to_read}...")
+             # Remove a chave PENDENTE ANTES de processar para evitar loop se falhar
+             del st.session_state["read_code_path_pending"]
+             process_read_code(file_to_read)
+             rerun_needed_after_action = True # Precisa rerodar para mostrar resultado
+
+        # Se não era nenhuma das ações acima, assume que era uma resposta de chat
+        else:
+            log.info("Processando fetch_nash_response (chat)...")
+            fetch_nash_response()
+            rerun_needed_after_action = True # Precisa rerodar para mostrar resultado
+
+        # Se uma ação foi processada, faz um rerun final para exibir a atualização
+        if rerun_needed_after_action:
+             log.info("Ação pendente processada. Chamando st.rerun() final para atualizar a UI.")
+             st.rerun()
+
+    # Input de Chat (Só é processado se nenhuma ação pendente estava ativa)
     if prompt := st.chat_input("Digite seu comando para Nash...", key="chat_input_widget", disabled=st.session_state.waiting_for_nash):
-        handle_chat_input(prompt)
+        log.info(f"Novo prompt recebido do usuário: '{prompt[:30]}...'")
+        handle_chat_input(prompt) # handle_chat_input chama st.rerun()
 
 
 # --- Execução ---
 if __name__ == "__main__":
-    # Definir log global aqui se necessário
-    log = logging.getLogger(__name__)
+    # O logger já foi inicializado no topo do script
     main()
-
-# --- END OF FILE nash_ui.py ---
+# --- END OF FILE nash_ui.py (REVISED) ---
