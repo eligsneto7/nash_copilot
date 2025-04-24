@@ -90,43 +90,40 @@ def init_pinecone(api_key: Optional[str] = None, index_name: Optional[str] = Non
             _pinecone_client = Pinecone(api_key=api_key)
             log.info(f"Cliente Pinecone instanciado.")
 
-        # 2. Verifica se o índice existe <<< NOVA ABORDAGEM >>>
+        # 2. Verifica se o índice existe
         log.info(f"Verificando existência do Index Pinecone: {index_name}...")
         try:
-            # Chama list_indexes() - o resultado pode variar um pouco entre versões
             indexes_description = _pinecone_client.list_indexes()
-            log.info(f"Resultado bruto de list_indexes(): {indexes_description}") # LOG EXTRA
+            log.info(f"Resultado bruto de list_indexes(): {indexes_description}")
 
-            # Tenta extrair nomes assumindo que é uma lista de objetos/dicionários com 'name'
-            # ou diretamente o atributo .names se for a estrutura esperada
             available_names = []
-            if hasattr(indexes_description, 'names'): # Verifica se a estrutura esperada com .names existe
-                 available_names = indexes_description.names
-                 log.info(f"Extraído via .names: {available_names} (Tipo: {type(available_names)})")
-            elif isinstance(indexes_description, list): # Verifica se é uma lista (outra estrutura possível)
+            if hasattr(indexes_description, 'names'):
+                 # <<< CORREÇÃO APLICADA AQUI >>> Chamar o método .names()
+                 available_names = indexes_description.names()
+                 log.info(f"Extraído via .names(): {available_names} (Tipo: {type(available_names)})")
+            elif isinstance(indexes_description, list): # Fallback se .names não existir (improvável agora)
                 available_names = [index_info['name'] for index_info in indexes_description if 'name' in index_info]
                 log.info(f"Extraído via iteração de lista: {available_names} (Tipo: {type(available_names)})")
             else:
-                 # Se não for nenhuma das estruturas conhecidas, loga e falha
                  log.error(f"Estrutura inesperada retornada por list_indexes(): {type(indexes_description)}. Não foi possível extrair nomes.")
-                 return None # Não é possível verificar
+                 return None
 
-            # Verifica se available_names é realmente iterável agora
+            # Verifica se available_names é iterável
             if not isinstance(available_names, (list, tuple, set)):
                  log.error(f"Falha ao obter uma lista iterável de nomes de índice. Obtido: {available_names} (Tipo: {type(available_names)})")
                  return None
 
-            # PASSO 3: Verificar a existência na lista 'available_names'
+            # Verifica a existência na lista
             if index_name not in available_names:
                 log.error(f"O Index Pinecone '{index_name}' não foi encontrado na sua conta/projeto. Índices disponíveis: {available_names}")
-                return None # Retorna None se não existe
+                return None
 
             log.info(f"Index '{index_name}' encontrado na lista de nomes disponíveis.")
 
         except ApiException as list_err:
              log.exception(f"Erro da API Pinecone ao tentar listar índices: {list_err}")
-             return None # Falha se não conseguir nem listar
-        except Exception as list_generic_err: # Captura outros erros inesperados ao listar/processar
+             return None
+        except Exception as list_generic_err:
              log.exception(f"Erro inesperado ao processar a lista de índices: {list_generic_err}")
              return None
 
@@ -134,13 +131,13 @@ def init_pinecone(api_key: Optional[str] = None, index_name: Optional[str] = Non
         log.info(f"Obtendo objeto Index para '{index_name}'...")
         _pinecone_index_obj = _pinecone_client.Index(index_name)
 
-        # 4. Valida a conexão fazendo uma chamada rápida
+        # 4. Valida a conexão
         log.info(f"Validando conexão com o Index '{index_name}' via describe_index_stats...")
         stats = _pinecone_index_obj.describe_index_stats()
         log.info(f"Conectado ao Pinecone Index '{index_name}'. Status: {stats}")
         return _pinecone_index_obj
 
-    except ApiException as api_e: # Erro mais específico da API Pinecone
+    except ApiException as api_e:
          log.exception(f"Erro de API Pinecone durante a inicialização/conexão com Index '{index_name}': {api_e}")
          _pinecone_client = None
          _pinecone_index_obj = None
