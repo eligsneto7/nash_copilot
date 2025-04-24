@@ -1,9 +1,9 @@
-# --- START OF FILE nash_ui.py (REVISED) ---
+# --- START OF FILE nash_ui.py (FINAL CORRECTION) ---
 
 import os
 import sys
 from pathlib import Path
-import logging # MOVIMENTADO PARA CIMA: Importar logging mais cedo
+import logging
 import streamlit as st
 import requests
 import time
@@ -14,76 +14,49 @@ from datetime import datetime, timedelta
 from streamlit_extras.add_vertical_space import add_vertical_space
 import json
 
-# --- Configuração do Logger (MOVIMENTADO PARA CIMA) ---
-# Inicializa o logger globalmente ANTES de ser usado em funções ou no fluxo principal.
+# --- Configuração do Logger ---
 log = logging.getLogger(__name__)
-# Define a configuração básica (pode ser sobrescrita pela config do app principal se houver)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(name)s:%(message)s')
-log.info("Logger da UI inicializado (nível global).")
+log.info("Logger da UI inicializado.")
 
-# --- Lógica de Import Revisada ---
-HERE = Path(__file__).resolve().parent # Diretório onde nash_ui.py está (e.g., /app)
-PROJECT_ROOT = HERE.parent # Diretório pai (e.g., /) - Menos provável de ser o correto se a UI não está numa subpasta
+# --- REMOVIDO: Bloco de importação de nash_utils ---
+# A UI não deve importar código do backend diretamente.
+# Comunicação é feita via API (requests).
 
-# Adiciona o diretório que CONTÉM a pasta 'backend' ao sys.path
-# Cenário 1: nash_ui.py está em /app/nash_ui.py, backend está em /app/backend/
-if (HERE / "backend").exists() and (HERE / "backend" / "nash_utils.py").exists():
-     if str(HERE) not in sys.path:
-          sys.path.insert(0, str(HERE))
-          log.info(f"[Import Setup] Adicionado diretório do script ao sys.path: {HERE}")
-# Cenário 2: nash_ui.py está em /app/frontend/nash_ui.py, backend está em /app/backend/
-elif (PROJECT_ROOT / "backend").exists() and (PROJECT_ROOT / "backend" / "nash_utils.py").exists():
-     if str(PROJECT_ROOT) not in sys.path:
-          sys.path.insert(0, str(PROJECT_ROOT))
-          log.info(f"[Import Setup] Adicionado diretório pai ({PROJECT_ROOT}) ao sys.path.")
-else:
-     log.warning(f"[Import Setup] Não foi possível encontrar o diretório 'backend' nos locais esperados ({HERE} ou {PROJECT_ROOT}). Imports podem falhar.")
-     # Adiciona HERE de qualquer forma como fallback, caso a estrutura seja inesperada
-     if str(HERE) not in sys.path:
-          sys.path.insert(0, str(HERE))
-          log.info(f"[Import Setup] Adicionado diretório do script ({HERE}) ao sys.path como fallback.")
+# --- UTILITÁRIOS COPIADOS DE nash_utils (Necessários na UI) ---
+# Conjuntos de extensões para validação no upload
+IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff", ".svg"}
+CODE_EXTS = {".py", ".txt", ".md", ".json", ".csv", ".pdf", ".log", ".sh", ".yaml", ".toml", ".html", ".css", ".js", ".ipynb"}
+AUDIO_VIDEO_EXTS = {".mp3", ".wav", ".ogg", ".mp4", ".mov", ".avi", ".webm"}
+ALLOWED_EXTENSIONS_SET = IMAGE_EXTS | CODE_EXTS | AUDIO_VIDEO_EXTS
 
-
-# Tenta importar usando o caminho relativo ao pacote 'backend'
-try:
-    log.info(f"[Import Setup] Tentando importar de 'backend.nash_utils'. Conteúdo atual de sys.path: {sys.path}")
-    from backend.nash_utils import (
-        init_openai,
-        init_pinecone,
-        init_github,
-        init_google_search,
-        fetch_relevant_memories,
-        register_memory,
-        nash_log,
-        allowed_file, # Importa a função original
-        IMAGE_EXTS,
-        CODE_EXTS,
-        get_github_file_content,
-        propose_github_change,
-        perform_google_search,
-        get_text_embedding,
-    )
-    # Renomeia explicitamente para manter consistência com o código original que usava ALLOWED_EXTENSIONS
-    ALLOWED_EXTENSIONS = allowed_file
-    log.info("[Import Setup] Import de backend.nash_utils realizado com sucesso.")
-
-except ModuleNotFoundError as e:
-    log.exception(f"[Import Setup] ERRO CRÍTICO: ModuleNotFoundError ao importar 'backend.nash_utils'. Verifique a estrutura de pastas no container e a presença de 'backend/__init__.py'. Erro: {e}")
-    # Levanta o erro original para o Streamlit mostrar claramente o problema
-    raise e
-except ImportError as e:
-    log.exception(f"[Import Setup] ERRO CRÍTICO: ImportError durante o import de 'backend.nash_utils'. Pode indicar um problema dentro de nash_utils.py ou suas dependências. Erro: {e}")
-    raise e
+def allowed_file(filename: str) -> bool:
+    """Verifica se a extensão do arquivo é permitida (cópia de nash_utils)."""
+    if not filename or '.' not in filename:
+        return False
+    ext = os.path.splitext(filename)[1].lower()
+    return ext in ALLOWED_EXTENSIONS_SET
+# --- Fim dos Utilitários Copiados ---
 
 
 # --- Constantes ---
 BACKEND_URL = os.getenv("BACKEND_URL", "https://nashcopilot-production.up.railway.app")
+# Verifica se a URL do backend foi carregada corretamente
+if not BACKEND_URL or "railway.app" not in BACKEND_URL:
+     log.warning(f"BACKEND_URL parece inválida ou não definida: {BACKEND_URL}. Usando fallback.")
+     # Você pode querer definir um fallback diferente ou lançar um erro aqui se for crítico
+     BACKEND_URL = "https://nashcopilot-production.up.railway.app" # Fallback explícito
+
+log.info(f"URL do Backend configurada para: {BACKEND_URL}")
 REQUEST_TIMEOUT = (5, 65) # (connect timeout, read timeout em segundos)
+
 
 # --- Definição do Tema CSS ---
 MODERN_LIGHT_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Fira+Mono:wght@400&display=swap');
+/* CSS Completo Omitido por Brevidade - Use o CSS original aqui */
+/* ... (Cole todo o seu CSS aqui) ... */
 
 /* --- Variáveis CSS --- */
 :root {
@@ -356,6 +329,7 @@ body {
 
 def check_backend_status(force_check=False) -> tuple[str, str]:
     """Verifica o status do backend. Retorna (status_texto, status_classe_css)."""
+    # ... (Código sem alterações, usa log e BACKEND_URL globais) ...
     now = datetime.now()
     cache_duration = timedelta(seconds=30)
     if not force_check and "last_backend_check" in st.session_state and \
@@ -393,7 +367,6 @@ def check_backend_status(force_check=False) -> tuple[str, str]:
         status_text = "Offline"
         status_class = "status-offline"
     except Exception as e:
-        # Usa o logger global que agora está definido
         log.error(f"Erro inesperado ao checar backend: {e}")
         status_text = "Erro"
         status_class = "status-error"
@@ -405,6 +378,7 @@ def check_backend_status(force_check=False) -> tuple[str, str]:
 
 def escape_html_tags(text: str) -> str:
     """Escapa caracteres HTML para exibição segura."""
+    # ... (Código sem alterações) ...
     if not isinstance(text, str):
         text = str(text)
     return html.escape(text, quote=True)
@@ -412,6 +386,7 @@ def escape_html_tags(text: str) -> str:
 # --- Inicialização do Estado da Sessão ---
 def init_session_state():
     """Inicializa as variáveis do estado da sessão se não existirem."""
+    # ... (Código sem alterações) ...
     defaults = {
         "start_time": datetime.now(),
         "history": [],
@@ -427,8 +402,8 @@ def init_session_state():
         "login_error": None,
         "auto_scroll": True,
         "session_uuid": str(uuid.uuid4()),
-        "read_code_path_pending": None, # Adicionado para rastrear leitura pendente
-        "propose_params": None # Mantido para proposta pendente
+        "read_code_path_pending": None,
+        "propose_params": None
     }
     changed = False
     for key, default_value in defaults.items():
@@ -444,7 +419,7 @@ def init_session_state():
 # --- Renderização do Visor ---
 def render_visor():
     """Renderiza o componente do visor superior com informações."""
-    # ... (código idêntico ao original, sem necessidade de mudança aqui) ...
+    # ... (Código sem alterações) ...
     status, _ = check_backend_status() # Pega só o texto do status
     uptime_delta = datetime.now() - st.session_state.start_time
     # Formatar uptime de forma mais legível
@@ -477,7 +452,7 @@ def render_visor():
 # --- Lógica de Login ---
 def handle_login():
     """Gerencia a tela e o processo de login."""
-    # ... (código idêntico ao original, usando log global agora) ...
+    # ... (Código sem alterações) ...
     st.markdown("### Autenticação Necessária")
     st.markdown("Por favor, insira o código de autorização para ativar o Nash.")
 
@@ -523,7 +498,7 @@ def handle_login():
                  st.rerun() # Só reroda sem tentar
             else:
                 try:
-                    log.info("Tentando autenticar no backend...")
+                    log.info(f"Tentando autenticar no backend: {BACKEND_URL}/login")
                     r = requests.post(f"{BACKEND_URL}/login", json={"password": actual_password}, timeout=REQUEST_TIMEOUT)
                     if r.status_code == 200 and r.json().get("success"):
                         st.session_state.is_authenticated = True
@@ -561,12 +536,7 @@ def handle_login():
 # --- Lógica de Upload ---
 def handle_file_upload(upload_status_placeholder):
     """Gerencia o upload de arquivos na sidebar."""
-    # Usa a função ALLOWED_EXTENSIONS (que é a `allowed_file` importada)
-    # O código original tinha a lista de extensões aqui, mas vamos confiar na função importada
-    # Se ALLOWED_EXTENSIONS for uma função, chamá-la. Se for um set, usar 'in'.
-    # Assumindo que ALLOWED_EXTENSIONS é a função importada de nash_utils.
-    # A validação de extensão no frontend é um plus, o backend fará a validação final.
-
+    # Usa a função 'allowed_file' definida localmente neste script
     uploaded_file = st.file_uploader(
         "Anexar Arquivo (Opcional)",
         key="file_uploader_widget",
@@ -581,19 +551,18 @@ def handle_file_upload(upload_status_placeholder):
         if current_file_id != previous_file_id:
             st.session_state.uploaded_file_info = None
 
-            # Validação Frontend (redundante se o backend valida, mas bom para UI)
-            if not ALLOWED_EXTENSIONS(uploaded_file.name): # Chama a função importada
+            # Validação Frontend usando a função local
+            if not allowed_file(uploaded_file.name): # Chama a função local
                  file_ext = os.path.splitext(uploaded_file.name)[1].lower()
-                 upload_status_placeholder.error(f"Tipo de arquivo '{file_ext}' não permitido pelo frontend.")
+                 upload_status_placeholder.error(f"Tipo de arquivo '{file_ext}' não permitido.")
                  log.warning(f"Tentativa de upload de tipo não permitido (frontend check): {uploaded_file.name}")
                  st.session_state.uploaded_file_id = None
-                 # Não precisa limpar widget aqui, o erro já informa
                  return
 
             files = {"file": (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type)}
             try:
                 with upload_status_placeholder, st.spinner(f"Transmitindo '{escape_html_tags(uploaded_file.name)}'..."):
-                    log.info(f"Iniciando upload para backend: {uploaded_file.name} ({uploaded_file.size} bytes)")
+                    log.info(f"Iniciando upload para backend: {uploaded_file.name} ({uploaded_file.size} bytes) para {BACKEND_URL}/upload")
                     r = requests.post(f"{BACKEND_URL}/upload", files=files, timeout=REQUEST_TIMEOUT) # Timeout maior para uploads
 
                 if r.status_code == 200:
@@ -642,7 +611,7 @@ def handle_file_upload(upload_status_placeholder):
 # --- Renderização da Sidebar ---
 def render_sidebar():
     """Renderiza a sidebar com controles, informações e novas ações."""
-    # ... (código idêntico ao original, sem necessidade de mudança aqui) ...
+    # ... (Código sem alterações) ...
     with st.sidebar:
         st.markdown("### 🛰️ Upload de Dados")
         upload_status_placeholder = st.empty() # Placeholder para mensagens de status do upload
@@ -707,23 +676,23 @@ def render_sidebar():
 # --- Funções para Ações de Código ---
 def handle_read_code(file_path):
     """Inicia o processo para ler arquivo do GitHub via backend."""
+    # ... (Código sem alterações) ...
     log.info(f"handle_read_code chamado para: {file_path}")
     st.session_state.waiting_for_nash = True # Usa a mesma flag de espera
-    # <<< CORREÇÃO >>> Armazena o caminho no estado ANTES do rerun
     st.session_state.read_code_path_pending = file_path
     log.info(f"'{file_path}' armazenado em read_code_path_pending. Iniciando rerun.")
     st.rerun() # Rerun para mostrar spinner e acionar process_read_code na próxima execução
 
 def process_read_code(file_path):
     """Processa a leitura do código após o rerun (chamado a partir de main)."""
-    # A flag waiting_for_nash já foi verificada em main
+    # ... (Código sem alterações) ...
     log.info(f"process_read_code executando para: {file_path}")
 
     code_content = None
     error_message = None
     try:
         with st.spinner(f"Lendo '{escape_html_tags(file_path)}' do GitHub..."):
-            log.info(f"Enviando pedido /read_code para backend: {file_path}")
+            log.info(f"Enviando pedido /read_code para backend ({BACKEND_URL}): {file_path}")
             r = requests.post(f"{BACKEND_URL}/read_code", json={"file_path": file_path}, timeout=REQUEST_TIMEOUT)
 
             if r.status_code == 200:
@@ -751,16 +720,14 @@ def process_read_code(file_path):
                  "content": f"**Falha ao ler `{file_path}`:**\n```\n{escape_html_tags(error_message)}\n```"
              })
              st.session_state.nash_msg_count += 1
-        # Limpa a flag de espera APENAS se não houver outra ação pendente
-        # (Neste fluxo simples, podemos limpar sempre aqui, main() gerencia o rerun)
         st.session_state.waiting_for_nash = False
         log.info("process_read_code concluído. Rerun será chamado por main.")
-        # st.rerun() # Rerun é gerenciado pelo main() após a chamada
+
 
 def handle_propose_change(file_path, description):
     """Inicia o processo para propor mudança no GitHub via backend."""
+    # ... (Código sem alterações) ...
     log.info(f"handle_propose_change chamado para: {file_path}")
-    # Guardar os parâmetros para usar após o rerun
     st.session_state.propose_params = {"file_path": file_path, "description": description}
     st.session_state.waiting_for_nash = True
     log.info(f"Parâmetros para propose_change armazenados. Iniciando rerun.")
@@ -768,7 +735,7 @@ def handle_propose_change(file_path, description):
 
 def process_propose_change():
     """Processa a proposta de mudança após o rerun (chamado a partir de main)."""
-    # Flag e existência de propose_params já checados em main
+    # ... (Código sem alterações) ...
     params = st.session_state.propose_params
     file_path = params["file_path"]
     description = params["description"]
@@ -780,7 +747,7 @@ def process_propose_change():
     try:
         spinner_msg = f"Gerando e propondo mudanças para '{escape_html_tags(file_path)}'..."
         with st.spinner(spinner_msg):
-            log.info(f"Enviando pedido /propose_code_change para backend: {file_path}")
+            log.info(f"Enviando pedido /propose_code_change para backend ({BACKEND_URL}): {file_path}")
             payload = {"file_path": file_path, "description": description}
             r = requests.post(f"{BACKEND_URL}/propose_code_change", json=payload, timeout=(10, 120)) # Timeout maior
 
@@ -815,18 +782,16 @@ def process_propose_change():
                  "content": f"**Falha ao propor mudança para `{file_path}`:**\n```\n{escape_html_tags(error_message)}\n```"
              })
              st.session_state.nash_msg_count += 1
-        # Limpar parâmetros e flag de espera
         st.session_state.waiting_for_nash = False
-        # Remove os parâmetros para não reprocessar
         if "propose_params" in st.session_state:
             del st.session_state.propose_params
         log.info("process_propose_change concluído. Rerun será chamado por main.")
-        # st.rerun() # Rerun é gerenciado pelo main() após a chamada
 
 
 # --- Limpeza da Sessão ---
 def clear_session():
      """Limpa o histórico e contadores da sessão."""
+     # ... (Código sem alterações) ...
      st.session_state.history = []
      st.session_state.eli_msg_count = 0
      st.session_state.nash_msg_count = 0
@@ -841,7 +806,7 @@ def clear_session():
 # --- Renderização do Histórico ---
 def render_history(chat_container):
     """Renderiza o histórico de mensagens no container fornecido."""
-    # ... (código idêntico ao original, sem necessidade de mudança aqui) ...
+    # ... (Código sem alterações) ...
     with chat_container:
         if not st.session_state.history:
              st.markdown("> *Console de comando aguardando input... Digite sua instrução abaixo.*")
@@ -851,16 +816,14 @@ def render_history(chat_container):
             role = message["role"] # "user" or "assistant"
             content = message["content"]
             avatar = "🧑‍🚀" if role == "user" else "👨‍🚀" # Eli | Nash
-            # Usar key única para cada mensagem ajuda Streamlit a gerenciar o estado
             with st.chat_message(role, avatar=avatar):
-                # Renderiza o conteúdo como Markdown
-                # unsafe_allow_html=False é mais seguro por padrão
                 st.markdown(content, unsafe_allow_html=False)
 
 
 # --- Envio de Prompt e Comunicação com Backend ---
 def handle_chat_input(prompt: str):
     """Processa o input do usuário, envia ao backend e atualiza o histórico."""
+    # ... (Código sem alterações) ...
     if not prompt:
         return
 
@@ -887,7 +850,7 @@ def handle_chat_input(prompt: str):
 # --- Lógica Principal pós-rerun para buscar resposta do Chat ---
 def fetch_nash_response():
     """Chamado após rerun se waiting_for_nash for True e for uma ação de chat."""
-    # Flag já checada em main
+    # ... (Código sem alterações) ...
     log.info("fetch_nash_response executando...")
 
     last_user_message = next((msg for msg in reversed(st.session_state.history) if msg["role"] == "user"), None)
@@ -895,11 +858,10 @@ def fetch_nash_response():
         log.error("Não foi possível encontrar a última mensagem do usuário no histórico para fetch_nash_response.")
         st.session_state.history.append({"role": "assistant", "content": "[Erro Interno da UI: Não encontrei sua última mensagem para enviar ao Nash.]"})
         st.session_state.waiting_for_nash = False # Limpa flag para evitar loop
-        # st.rerun() # Rerun é gerenciado por main()
         return
 
     payload = {"prompt": last_user_message["content"], "session_id": st.session_state.session_uuid}
-    log.info(f"Enviando prompt para /chat backend: {payload['prompt'][:50]}...")
+    log.info(f"Enviando prompt para /chat backend ({BACKEND_URL}): {payload['prompt'][:50]}...")
 
     response_content = ""
     try:
@@ -934,7 +896,6 @@ def fetch_nash_response():
         st.session_state.history.append({"role": "assistant", "content": response_content})
         st.session_state.waiting_for_nash = False
         log.info("fetch_nash_response concluído. Rerun será chamado por main.")
-        # st.rerun() # Rerun é gerenciado por main()
 
 
 # --- Função Principal da Aplicação ---
@@ -946,7 +907,7 @@ def main():
     # Aplica o CSS moderno
     st.markdown(MODERN_LIGHT_CSS, unsafe_allow_html=True)
 
-    # Garante que o estado da sessão existe (chama log internamente)
+    # Garante que o estado da sessão existe
     init_session_state()
 
     # Status flutuante
@@ -961,11 +922,13 @@ def main():
     render_sidebar()
     log.debug("Sidebar renderizada.")
 
-    # Lógica de Autenticação (handle_login chama st.stop() se não autenticado)
+    # Lógica de Autenticação
     if not st.session_state.is_authenticated:
         log.info("Usuário não autenticado. Exibindo tela de login.")
-        handle_login()
-    log.info("Usuário autenticado. Continuando renderização principal.") # Só chega aqui se autenticado
+        handle_login() # Chama st.stop() internamente se não autenticado
+
+    # --- Código abaixo só executa se autenticado ---
+    log.info("Usuário autenticado. Renderizando área principal.")
 
     # Área Principal
     render_visor()
@@ -976,45 +939,54 @@ def main():
     log.debug("Histórico renderizado.")
 
     # --- Processamento de Ações Pendentes ---
-    # Verifica se alguma ação estava esperando após um rerun
     rerun_needed_after_action = False
     if st.session_state.waiting_for_nash:
         log.info("Estado 'waiting_for_nash' detectado. Verificando tipo de ação...")
+        action_processed = False # Flag para saber se algo foi feito
 
-        # Verifica se era uma proposta de código
+        # Verifica proposta de código
         if st.session_state.get("propose_params"):
              log.info("Processando propose_code_change...")
              process_propose_change()
-             rerun_needed_after_action = True # Precisa rerodar para mostrar resultado
+             action_processed = True
 
-        # Verifica se era uma leitura de código
+        # Verifica leitura de código
         elif st.session_state.get("read_code_path_pending"):
              file_to_read = st.session_state.read_code_path_pending
              log.info(f"Processando read_code para: {file_to_read}...")
-             # Remove a chave PENDENTE ANTES de processar para evitar loop se falhar
-             del st.session_state["read_code_path_pending"]
+             del st.session_state["read_code_path_pending"] # Remove ANTES
              process_read_code(file_to_read)
-             rerun_needed_after_action = True # Precisa rerodar para mostrar resultado
+             action_processed = True
 
-        # Se não era nenhuma das ações acima, assume que era uma resposta de chat
-        else:
+        # Se nenhuma ação específica foi identificada, assume chat
+        # IMPORTANTE: Garante que só busca chat se NENHUMA outra ação estava pendente
+        elif not st.session_state.get("propose_params") and not st.session_state.get("read_code_path_pending"):
             log.info("Processando fetch_nash_response (chat)...")
             fetch_nash_response()
-            rerun_needed_after_action = True # Precisa rerodar para mostrar resultado
+            action_processed = True
+        else:
+            # Caso estranho onde waiting_for_nash é True mas nenhuma ação conhecida está pendente
+            log.warning("waiting_for_nash=True, mas nenhuma ação específica (propose/read) ou chat foi processada. Resetando flag.")
+            st.session_state.waiting_for_nash = False
 
-        # Se uma ação foi processada, faz um rerun final para exibir a atualização
-        if rerun_needed_after_action:
-             log.info("Ação pendente processada. Chamando st.rerun() final para atualizar a UI.")
+
+        # Se uma ação foi processada, força um rerun para atualizar a UI
+        if action_processed:
+             log.info("Ação pendente processada. Chamando st.rerun() para atualizar a UI.")
+             # Adiciona uma pequena pausa para garantir que o estado seja atualizado antes do rerun
+             time.sleep(0.1)
              st.rerun()
 
-    # Input de Chat (Só é processado se nenhuma ação pendente estava ativa)
+    # Input de Chat (Só permite input se nenhuma ação está pendente)
     if prompt := st.chat_input("Digite seu comando para Nash...", key="chat_input_widget", disabled=st.session_state.waiting_for_nash):
-        log.info(f"Novo prompt recebido do usuário: '{prompt[:30]}...'")
-        handle_chat_input(prompt) # handle_chat_input chama st.rerun()
+        log.info(f"Novo prompt recebido do usuário via chat_input: '{prompt[:30]}...'")
+        handle_chat_input(prompt) # Chama st.rerun() internamente
 
+    log.info("--- Execução da UI Concluída ---")
 
 # --- Execução ---
 if __name__ == "__main__":
-    # O logger já foi inicializado no topo do script
+    # O logger já foi inicializado no topo
     main()
-# --- END OF FILE nash_ui.py (REVISED) ---
+
+# --- END OF FILE nash_ui.py (FINAL CORRECTION) ---
