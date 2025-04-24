@@ -1,4 +1,3 @@
-```python
 # --- START OF FILE nash_ui.py (Refatorado e Traduzido) ---
 
 import streamlit as st
