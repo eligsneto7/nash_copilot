@@ -3,7 +3,7 @@
 import streamlit as st
 import requests
 import time
-import os
+import os, sys
 import random
 import html
 import uuid # Usado para keys únicas se necessário
@@ -27,7 +27,10 @@ from backend.nash_utils import (
     get_text_embedding
 )
 
-
+HERE = os.path.dirname(__file__)
+BACKEND_DIR = os.path.join(HERE, "backend")
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
 # --- Constantes ---
 # Use st.secrets para produção ou variáveis de ambiente para o URL do backend
 # BACKEND_URL = st.secrets.get("BACKEND_URL", "https://nashcopilot-production.up.railway.app")
