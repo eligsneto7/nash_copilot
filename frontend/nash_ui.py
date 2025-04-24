@@ -333,6 +333,7 @@ def check_backend_status(force_check=False) -> tuple[str, str]:
     now = datetime.now()
     cache_duration = timedelta(seconds=30)
     if not force_check and "last_backend_check" in st.session_state and \
+        st.session_state.last_backend_check is not None and \
        (now - st.session_state.last_backend_check) < cache_duration:
         return st.session_state.backend_status, st.session_state.backend_status_class
 
