@@ -48,7 +48,7 @@ if not BACKEND_URL or "railway.app" not in BACKEND_URL:
      BACKEND_URL = "https://nashcopilot-production.up.railway.app" # Fallback explícito
 
 log.info(f"URL do Backend configurada para: {BACKEND_URL}")
-REQUEST_TIMEOUT = (5, 65) # (connect timeout, read timeout em segundos)
+REQUEST_TIMEOUT = (500, 650) # (connect timeout, read timeout em segundos)
 
 
 # --- Definição do Tema CSS ---
@@ -749,7 +749,7 @@ def process_propose_change():
         with st.spinner(spinner_msg):
             log.info(f"Enviando pedido /propose_code_change para backend ({BACKEND_URL}): {file_path}")
             payload = {"file_path": file_path, "description": description}
-            r = requests.post(f"{BACKEND_URL}/propose_code_change", json=payload, timeout=(10, 120)) # Timeout maior
+            r = requests.post(f"{BACKEND_URL}/propose_code_change", json=payload, timeout=(500, 650)) # Timeout maior
 
             if r.status_code == 200:
                 result = r.json()
