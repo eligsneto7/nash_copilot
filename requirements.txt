@@ -1,0 +1,27 @@
+flask>=2.0 # Use uma versão recente
+openai>=1.14 # Importante usar v1.x ou superior
+pinecone>=3.0 # Ou a versão compatível com seu plano
+python-dotenv>=0.19
+requests>=2.25
+PyGithub>=1.55 # Ou mais recente
+google-api-python-client>=2.0
+google-auth>=2.0
+google-auth-httplib2>=0.1
+google-auth-oauthlib>=0.5
+google-search-results
+gunicorn>=20.0 # Recomendado para produção com Flask no Railway
+Werkzeug>=2.0 # Dependência do Flask, especificar pode ajudar
+streamlit-authenticator>=0.2
+pydantic>=1.10
+fastapi>=0.95
+uvicorn>=0.22
+tiktoken>=0.4
+tenacity>=8.2
+backoff>=2.2
+sentry-sdk>=1.24
+rich>=13.7
+loguru>=0.7
+tqdm>=4.66
+pytest>=8.0
+pytest-asyncio>=0.23
+httpx>=0.26
