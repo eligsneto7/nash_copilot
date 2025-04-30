@@ -206,7 +206,7 @@ def process_llm_tool_use(response_content: str, user_message: str):
         return "[Erro Interno: Configuração da API OpenAI ausente]"
     client = OpenAI(api_key=OPENAI_API_KEY)
 
-    max_tool_iterations = 3
+    max_tool_iterations = 98
     current_iteration = 0
 
     while current_iteration < max_tool_iterations:
