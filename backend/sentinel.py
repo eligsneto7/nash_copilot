@@ -21,8 +21,8 @@ def launch():
 
     app_module = "backend.nash_app:app"
     bind_address = f"0.0.0.0:{port}"
-    # <<< MODIFICADO >>> Adicionar --timeout 120
-    gunicorn_timeout = "120" # Segundos
+    # <<< MODIFICADO >>> Aumentar timeout para 300 segundos (5 minutos)
+    gunicorn_timeout = "300"
     APP_CMD = ["gunicorn", "--bind", bind_address, "--timeout", gunicorn_timeout, app_module]
 
     print(f"[SENTINEL] Launching app with command: {' '.join(APP_CMD)}")
