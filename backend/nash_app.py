@@ -13,7 +13,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from openai import OpenAI
 
 # Importações de nash_utils (mantendo todas as necessárias para ferramentas e memória)
-from nash_utils import (
+from .nash_utils import (
     init_openai, init_pinecone, init_github, init_google_search,
     fetch_relevant_memories, register_memory,
     nash_log, allowed_file as ALLOWED_EXTENSIONS,
