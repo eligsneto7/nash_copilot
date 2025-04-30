@@ -1,19 +1,30 @@
-# nash/sentinel.py <-- Lembre-se que este arquivo está em backend/sentinel.py
+# backend/sentinel.py
 import subprocess, time, signal, os, sys
 
-# <<< MODIFICADO >>> Usar Gunicorn para rodar a aplicação Flask (nash_app:app)
-# Gunicorn precisa saber onde encontrar o arquivo (backend/nash_app.py) e o objeto Flask (app)
-# O Railway define a variável $PORT, que o Gunicorn usará.
-APP_CMD = ["gunicorn", "--bind", "0.0.0.0:$PORT", "backend.nash_app:app"]
+# <<< MODIFICADO >>> Mover a construção do APP_CMD para dentro do launch()
+# para que possamos pegar o PORT do ambiente atualizado.
 
 def launch():
     # Passar as variáveis de ambiente do sentinel para o processo filho (gunicorn)
-    # Isso garante que Gunicorn e Flask tenham acesso a $PORT, API keys, etc.
     env = os.environ.copy()
+
+    # <<< NOVO >>> Obter a porta do ambiente, com um fallback (ex: 8080)
+    # O Railway DEVE definir PORT, mas ter um fallback é seguro.
+    port = env.get("PORT", "8080")
+    if not port.isdigit():
+        print(f"[SENTINEL] WARNING: PORT environment variable ('{port}') is not a valid number. Falling back to 8080.")
+        port = "8080"
+
+    # <<< MODIFICADO >>> Construir APP_CMD aqui usando a porta obtida
+    app_module = "backend.nash_app:app"
+    bind_address = f"0.0.0.0:{port}"
+    APP_CMD = ["gunicorn", "--bind", bind_address, app_module]
+
     print(f"[SENTINEL] Launching app with command: {' '.join(APP_CMD)}")
     # Adiciona PWD ao log para debug de caminho, se necessário
     print(f"[SENTINEL] Current Working Directory: {os.getcwd()}")
-    return subprocess.Popen(APP_CMD, env=env) # Passa o ambiente
+    # Passa o ambiente copiado para o processo filho
+    return subprocess.Popen(APP_CMD, env=env)
 
 def main():
     proc = None # Inicializa proc fora do loop
@@ -48,8 +59,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("[SENTINEL] Received KeyboardInterrupt, exiting.")
         # Tenta garantir que o processo filho seja terminado ao sair
-        # Esta parte pode não funcionar perfeitamente dependendo de como o Railway envia sinais
-        # Mas é uma boa prática tentar.
         if 'proc' in locals() and proc and proc.poll() is None:
              print(f"[SENTINEL] Terminating app process (PID: {proc.pid}) on exit.")
              proc.terminate()
