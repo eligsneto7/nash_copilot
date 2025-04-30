@@ -8,9 +8,13 @@ import socket
 import json
 import time # Adicionado para logging de tempo
 import traceback # Adicionado para logging de erro detalhado
+from .nash_utils import (
+    init_openai, init_pinecone, init_github, init_google_search,
+    # ... restante das importações de nash_utils ...
+)
 
 from flask import Flask, request, jsonify, send_from_directory
-from openai import OpenAI
+from openai import OpenAI, OpenAIError
 
 # Importações de nash_utils (mantendo todas as necessárias para ferramentas e memória)
 from .nash_utils import (

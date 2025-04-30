@@ -4,36 +4,30 @@ import subprocess, time, signal, os, sys
 # <<< MODIFICADO >>> Adicionar ajuste de PYTHONPATH
 
 def launch():
-    # Passar as variáveis de ambiente do sentinel para o processo filho (gunicorn)
     env = os.environ.copy()
-    cwd = os.getcwd() # Obter o diretório de trabalho atual (/app)
+    cwd = os.getcwd()
 
-    # <<< NOVO: Ajustar PYTHONPATH >>>
-    python_path = env.get('PYTHONPATH', '') # Pega o PYTHONPATH existente ou string vazia
-    # Adiciona o diretório atual (/app) ao início do PYTHONPATH
-    # Usa os.pathsep para o separador correto (':' no Linux/Railway)
+    python_path = env.get('PYTHONPATH', '')
     if cwd not in python_path.split(os.pathsep):
         env['PYTHONPATH'] = f"{cwd}{os.pathsep}{python_path}" if python_path else cwd
         print(f"[SENTINEL] Adjusted PYTHONPATH: {env['PYTHONPATH']}")
     else:
         print(f"[SENTINEL] PYTHONPATH already contains CWD: {python_path}")
-    # <<< FIM da adição PYTHONPATH >>>
 
-    # Obter a porta do ambiente, com um fallback (ex: 8080)
     port = env.get("PORT", "8080")
     if not port.isdigit():
         print(f"[SENTINEL] WARNING: PORT environment variable ('{port}') is not a valid number. Falling back to 8080.")
         port = "8080"
 
-    # Construir APP_CMD aqui usando a porta obtida
     app_module = "backend.nash_app:app"
     bind_address = f"0.0.0.0:{port}"
-    APP_CMD = ["gunicorn", "--bind", bind_address, app_module]
+    # <<< MODIFICADO >>> Adicionar --timeout 120
+    gunicorn_timeout = "120" # Segundos
+    APP_CMD = ["gunicorn", "--bind", bind_address, "--timeout", gunicorn_timeout, app_module]
 
     print(f"[SENTINEL] Launching app with command: {' '.join(APP_CMD)}")
-    print(f"[SENTINEL] Current Working Directory: {cwd}") # Já tínhamos isso
+    print(f"[SENTINEL] Current Working Directory: {cwd}")
 
-    # Passa o ambiente MODIFICADO para o processo filho
     return subprocess.Popen(APP_CMD, env=env)
 
 # O restante do arquivo (main, __main__) permanece o mesmo da versão anterior...
