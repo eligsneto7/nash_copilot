@@ -445,7 +445,7 @@ def propose_code_change_endpoint():
         )
         generated_code_block = completion.choices[0].message.content.strip()
 
-        # Extrair o código do bloco markdown
+        # Extrair o código do bloco markdown -- colocando algo
         new_content = None
         if generated_code_block.startswith("```python") and generated_code_block.endswith("```"):
              new_content = generated_code_block[len("```python"):].strip()[:-len("```")].strip()
